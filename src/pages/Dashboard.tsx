@@ -17,6 +17,7 @@ import EmployeeModal from '@/components/EmployeeModal';
 import LeaveModal from '@/components/LeaveModal';
 import HistoryModal from '@/components/HistoryModal';
 import { exportToExcel } from '@/lib/export';
+import ImigrasiLogo from '@/components/ImigrasiLogo';
 
 const Dashboard = () => {
   const { user, isAdmin, loading, signOut } = useAuth();
@@ -196,10 +197,11 @@ const Dashboard = () => {
       <header className="bg-card border-b border-border sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
-              <CalendarDays className="h-5 w-5 text-primary-foreground" />
+            <ImigrasiLogo size="sm" />
+            <div>
+              <h1 className="text-xl font-bold text-foreground">Manajemen Cuti</h1>
+              <p className="text-xs text-muted-foreground">Kemenkumham RI</p>
             </div>
-            <h1 className="text-xl font-bold text-foreground">Manajemen Cuti</h1>
           </div>
           <Button variant="outline" onClick={signOut}>
             <LogOut className="h-4 w-4 mr-2" />

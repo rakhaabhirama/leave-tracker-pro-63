@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { CalendarDays, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { z } from 'zod';
+import ImigrasiLogo from '@/components/ImigrasiLogo';
 
 const authSchema = z.object({
   email: z.string().trim().email({ message: "Format email tidak valid" }),
@@ -18,8 +19,7 @@ const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isLogin, setIsLogin] = useState(true);
-  const { signIn, signUp, user, isAdmin, loading } = useAuth();
+  const { signIn, user, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -47,38 +47,20 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
-      if (isLogin) {
-        const { error } = await signIn(email, password);
-        if (error) {
-          toast({
-            title: "Login Gagal",
-            description: error.message === "Invalid login credentials" 
-              ? "Email atau password salah" 
-              : error.message,
-            variant: "destructive"
-          });
-        } else {
-          toast({
-            title: "Login Berhasil",
-            description: "Selamat datang kembali!"
-          });
-        }
+      const { error } = await signIn(email, password);
+      if (error) {
+        toast({
+          title: "Login Gagal",
+          description: error.message === "Invalid login credentials" 
+            ? "Email atau password salah" 
+            : error.message,
+          variant: "destructive"
+        });
       } else {
-        const { error } = await signUp(email, password);
-        if (error) {
-          toast({
-            title: "Registrasi Gagal",
-            description: error.message.includes("already registered")
-              ? "Email sudah terdaftar"
-              : error.message,
-            variant: "destructive"
-          });
-        } else {
-          toast({
-            title: "Registrasi Berhasil",
-            description: "Akun berhasil dibuat. Hubungi administrator untuk mendapatkan akses admin."
-          });
-        }
+        toast({
+          title: "Login Berhasil",
+          description: "Selamat datang kembali!"
+        });
       }
     } catch (error) {
       toast({
@@ -103,13 +85,13 @@ const Auth = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-primary/5 p-4">
       <Card className="w-full max-w-md shadow-xl border-0">
         <CardHeader className="space-y-4 text-center pb-2">
-          <div className="mx-auto w-16 h-16 bg-primary rounded-2xl flex items-center justify-center shadow-lg">
-            <CalendarDays className="h-8 w-8 text-primary-foreground" />
+          <div className="mx-auto">
+            <ImigrasiLogo size="md" />
           </div>
           <div>
             <CardTitle className="text-2xl font-bold">Sistem Manajemen Cuti</CardTitle>
             <CardDescription className="mt-2">
-              {isLogin ? 'Masuk ke akun admin Anda' : 'Daftar akun baru'}
+              Kementerian Imigrasi dan Pemasyarakatan RI
             </CardDescription>
           </div>
         </CardHeader>
@@ -143,38 +125,16 @@ const Auth = () => {
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {isLogin ? 'Memproses...' : 'Mendaftar...'}
+                  Memproses...
                 </>
               ) : (
-                isLogin ? 'Masuk' : 'Daftar'
+                'Masuk'
               )}
             </Button>
           </form>
-          <div className="mt-4 text-center text-sm text-muted-foreground">
-            {isLogin ? (
-              <>
-                Belum punya akun?{' '}
-                <button
-                  type="button"
-                  onClick={() => setIsLogin(false)}
-                  className="text-primary hover:underline font-medium"
-                >
-                  Daftar
-                </button>
-              </>
-            ) : (
-              <>
-                Sudah punya akun?{' '}
-                <button
-                  type="button"
-                  onClick={() => setIsLogin(true)}
-                  className="text-primary hover:underline font-medium"
-                >
-                  Masuk
-                </button>
-              </>
-            )}
-          </div>
+          <p className="mt-4 text-center text-xs text-muted-foreground">
+            Hubungi administrator untuk mendapatkan akun
+          </p>
         </CardContent>
       </Card>
     </div>

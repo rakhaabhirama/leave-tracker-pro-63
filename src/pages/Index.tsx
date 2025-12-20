@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Calendar, Shield } from "lucide-react";
+import ImigrasiLogo from "@/components/ImigrasiLogo";
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -28,13 +29,16 @@ const Index = () => {
       <div className="container mx-auto px-4 py-16">
         {/* Header */}
         <div className="text-center mb-16">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-6">
-            <Calendar className="w-8 h-8 text-primary" />
+          <div className="inline-flex items-center justify-center mb-6">
+            <ImigrasiLogo size="lg" />
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
             Sistem Manajemen Cuti
           </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-2">
+            Kementerian Imigrasi dan Pemasyarakatan Republik Indonesia
+          </p>
+          <p className="text-muted-foreground max-w-xl mx-auto">
             Kelola cuti pegawai dengan mudah, efisien, dan terorganisir
           </p>
         </div>
