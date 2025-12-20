@@ -85,7 +85,7 @@ const Dashboard = () => {
     if (error) {
       toast({
         title: "Error",
-        description: "Gagal mengambil data pegawai",
+        description: error.message || "Gagal mengambil data pegawai",
         variant: "destructive"
       });
     } else {
@@ -107,7 +107,7 @@ const Dashboard = () => {
     if (error) {
       toast({
         title: "Error",
-        description: "Gagal menghapus pegawai",
+        description: error.message || "Gagal menghapus pegawai",
         variant: "destructive"
       });
     } else {
@@ -129,7 +129,7 @@ const Dashboard = () => {
     if (error) {
       toast({
         title: "Error",
-        description: "Gagal mengambil riwayat cuti",
+        description: error.message || "Gagal mengambil riwayat cuti",
         variant: "destructive"
       });
     } else {
@@ -157,7 +157,7 @@ const Dashboard = () => {
     if (error) {
       toast({
         title: "Error",
-        description: "Gagal mengekspor riwayat",
+        description: error.message || "Gagal mengekspor riwayat",
         variant: "destructive"
       });
     } else {
