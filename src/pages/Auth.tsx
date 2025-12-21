@@ -61,6 +61,7 @@ const Auth = () => {
           title: "Login Berhasil",
           description: "Selamat datang kembali!"
         });
+        navigate('/dashboard', { replace: true });
       }
     } catch (error) {
       toast({
