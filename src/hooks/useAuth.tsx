@@ -40,8 +40,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
-        
+
         if (session?.user) {
+          // Prevent race: keep loading=true until admin role check finishes.
+          setLoading(true);
+          setIsAdmin(false);
+
           setTimeout(async () => {
             const adminStatus = await checkAdminRole(session.user.id);
             setIsAdmin(adminStatus);
