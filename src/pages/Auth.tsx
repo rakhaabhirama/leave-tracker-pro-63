@@ -19,21 +19,30 @@ const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn, user, isAdmin, loading } = useAuth();
+  const { signIn, signOut, user, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!loading && user) {
-      if (isAdmin) {
-        navigate('/dashboard');
-      }
+    if (loading) return;
+    if (!user) return;
+
+    if (isAdmin) {
+      navigate('/dashboard', { replace: true });
+      return;
     }
-  }, [user, isAdmin, loading, navigate]);
+
+    toast({
+      title: "Akses Ditolak",
+      description: `Akun ${user.email ?? ''} tidak memiliki akses admin.`,
+      variant: "destructive",
+    });
+    signOut();
+  }, [user, isAdmin, loading, navigate, toast, signOut]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const validation = authSchema.safeParse({ email, password });
     if (!validation.success) {
       toast({
@@ -51,17 +60,17 @@ const Auth = () => {
       if (error) {
         toast({
           title: "Login Gagal",
-          description: error.message === "Invalid login credentials" 
-            ? "Email atau password salah" 
+          description: error.message === "Invalid login credentials"
+            ? "Email atau password salah"
             : error.message,
           variant: "destructive"
         });
       } else {
         toast({
           title: "Login Berhasil",
-          description: "Selamat datang kembali!"
+          description: "Memverifikasi akses..."
         });
-        navigate('/dashboard', { replace: true });
+        // Redirect akan dilakukan oleh useEffect setelah status admin terverifikasi.
       }
     } catch (error) {
       toast({
