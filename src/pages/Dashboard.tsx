@@ -147,7 +147,7 @@ const Dashboard = () => {
         employee_id: employee.id,
         admin_id: user.id,
         jenis: nextJenis,
-        jumlah: 0,
+        jumlah: 1, // minimal 1 untuk memenuhi constraint
         keterangan: `Ubah status menjadi ${nextLabel}`,
       });
 
