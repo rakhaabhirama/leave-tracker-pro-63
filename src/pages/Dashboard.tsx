@@ -269,10 +269,19 @@ const Dashboard = () => {
   const onLeaveCount = onLeaveEmployeeIds.size;
   const lowLeaveCount = employees.filter(e => e.sisa_cuti <= 3).length;
 
-  if (loading || !isAdmin) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user || !isAdmin) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">Mengalihkan...</p>
       </div>
     );
   }

@@ -53,10 +53,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     let cancelled = false;
 
-    const applySession = async (nextSession: Session | null) => {
+    const withTimeout = async <T,>(promise: Promise<T>, ms: number): Promise<T> => {
+      return await new Promise<T>((resolve, reject) => {
+        const t = window.setTimeout(() => reject(new Error('timeout')), ms);
+        promise
+          .then((val) => {
+            window.clearTimeout(t);
+            resolve(val);
+          })
+          .catch((err) => {
+            window.clearTimeout(t);
+            reject(err);
+          });
+      });
+    };
+
+    const setAuthState = (nextSession: Session | null) => {
       setSession(nextSession);
       setUser(nextSession?.user ?? null);
+    };
 
+    const resolveAdmin = async (nextSession: Session | null) => {
       if (!nextSession?.user) {
         setIsAdmin(false);
         setLoading(false);
@@ -64,41 +81,70 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       setLoading(true);
-      const adminStatus = await checkAdminRole(nextSession.user.id);
+      let adminStatus = false;
+      try {
+        adminStatus = await withTimeout(checkAdminRole(nextSession.user.id), 8000);
+      } catch (err) {
+        console.error('Error checking admin role:', err);
+        adminStatus = false;
+      }
+
       if (cancelled) return;
       setIsAdmin(adminStatus);
       setLoading(false);
     };
 
-    (async () => {
+    const refreshFromSession = async () => {
       setLoading(true);
       try {
         const {
           data: { session },
         } = await supabase.auth.getSession();
         if (cancelled) return;
-        await applySession(session);
+        setAuthState(session);
+        await resolveAdmin(session);
       } catch (err) {
-        console.error('Error initializing auth:', err);
+        console.error('Error refreshing session:', err);
         if (!cancelled) {
-          setSession(null);
-          setUser(null);
+          setAuthState(null);
           setIsAdmin(false);
           setLoading(false);
         }
       }
-    })();
+    };
+
+    void refreshFromSession();
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       if (cancelled) return;
-      void applySession(nextSession);
+      // Jangan panggil Supabase lagi langsung di callback ini.
+      setAuthState(nextSession);
+      window.setTimeout(() => {
+        if (cancelled) return;
+        void resolveAdmin(nextSession);
+      }, 0);
     });
+
+    const handleFocus = () => {
+      void refreshFromSession();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void refreshFromSession();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       cancelled = true;
       subscription.unsubscribe();
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 
@@ -119,11 +165,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     setLoading(true);
-    await supabase.auth.signOut();
-    setSession(null);
-    setUser(null);
-    setIsAdmin(false);
-    setLoading(false);
+    try {
+      await supabase.auth.signOut();
+    } finally {
+      setSession(null);
+      setUser(null);
+      setIsAdmin(false);
+      setLoading(false);
+    }
   };
 
   return (
