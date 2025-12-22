@@ -20,6 +20,7 @@ import HistoryModal from '@/components/HistoryModal';
 import { exportToExcel } from '@/lib/export';
 import ImigrasiLogo from '@/components/ImigrasiLogo';
 import { Badge } from '@/components/ui/badge';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 const Dashboard = () => {
   const { user, isAdmin, loading, signOut } = useAuth();
@@ -298,16 +299,19 @@ const Dashboard = () => {
               <p className="text-xs text-muted-foreground">Kemenkumham RI</p>
             </div>
           </div>
-          <Button
-            variant="outline"
-            onClick={async () => {
-              await signOut();
-              navigate('/auth');
-            }}
-          >
-            <LogOut className="h-4 w-4 mr-2" />
-            Keluar
-          </Button>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Button
+              variant="outline"
+              onClick={async () => {
+                await signOut();
+                navigate('/auth');
+              }}
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Keluar
+            </Button>
+          </div>
         </div>
       </header>
 
