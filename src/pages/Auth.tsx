@@ -24,14 +24,18 @@ const Auth = () => {
   const { toast } = useToast();
 
   useEffect(() => {
+    // Tunggu sampai loading selesai sebelum memutuskan apapun
     if (loading) return;
+    // Tidak ada user = tetap di halaman login
     if (!user) return;
 
+    // User ada DAN sudah dikonfirmasi admin
     if (isAdmin) {
       navigate('/dashboard', { replace: true });
       return;
     }
 
+    // User ada tapi bukan admin -> logout
     toast({
       title: "Akses Ditolak",
       description: `Akun ${user.email ?? ''} tidak memiliki akses admin.`,
