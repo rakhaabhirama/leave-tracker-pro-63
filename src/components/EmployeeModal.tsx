@@ -19,7 +19,6 @@ interface EmployeeModalProps {
 const employeeSchema = z.object({
   nip: z.string().trim().min(1, "NIP wajib diisi").max(50, "NIP maksimal 50 karakter"),
   nama: z.string().trim().min(1, "Nama wajib diisi").max(255, "Nama maksimal 255 karakter"),
-  departemen: z.string().trim().min(1, "Departemen wajib diisi").max(100, "Departemen maksimal 100 karakter"),
   jabatan: z.string().trim().min(1, "Jabatan wajib diisi").max(100, "Jabatan maksimal 100 karakter"),
   sisa_cuti: z.number().min(0, "Sisa cuti tidak boleh negatif")
 });
@@ -28,7 +27,6 @@ const EmployeeModal = ({ open, employee, onClose, onSuccess }: EmployeeModalProp
   const [formData, setFormData] = useState({
     nip: '',
     nama: '',
-    departemen: 'Umum',
     jabatan: '',
     sisa_cuti: 12
   });
@@ -40,7 +38,6 @@ const EmployeeModal = ({ open, employee, onClose, onSuccess }: EmployeeModalProp
       setFormData({
         nip: employee.nip,
         nama: employee.nama,
-        departemen: employee.departemen || 'Umum',
         jabatan: employee.jabatan,
         sisa_cuti: employee.sisa_cuti
       });
@@ -48,7 +45,6 @@ const EmployeeModal = ({ open, employee, onClose, onSuccess }: EmployeeModalProp
       setFormData({
         nip: '',
         nama: '',
-        departemen: 'Umum',
         jabatan: '',
         sisa_cuti: 12
       });
@@ -85,7 +81,7 @@ const EmployeeModal = ({ open, employee, onClose, onSuccess }: EmployeeModalProp
       } else {
         const { error } = await supabase
           .from('employees')
-          .insert(formData);
+          .insert({ ...formData, departemen: 'Umum' });
 
         if (error) {
           if (error.code === '23505') {

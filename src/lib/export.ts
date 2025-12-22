@@ -9,11 +9,10 @@ export const exportToExcel = (data: Employee[] | Record<string, any>[], filename
   let csvContent: string;
   
   if (isEmployeeData) {
-    const headers = ['NIP', 'Nama', 'Departemen', 'Jabatan', 'Sisa Cuti'];
+    const headers = ['NIP', 'Nama', 'Jabatan', 'Sisa Cuti'];
     const rows = (data as Employee[]).map(emp => [
       emp.nip,
       emp.nama,
-      emp.departemen,
       emp.jabatan,
       emp.sisa_cuti.toString()
     ]);
