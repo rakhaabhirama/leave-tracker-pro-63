@@ -28,7 +28,7 @@ const EmployeeModal = ({ open, employee, onClose, onSuccess }: EmployeeModalProp
   const [formData, setFormData] = useState({
     nip: '',
     nama: '',
-    departemen: '',
+    departemen: 'Umum',
     jabatan: '',
     sisa_cuti: 12
   });
@@ -40,7 +40,7 @@ const EmployeeModal = ({ open, employee, onClose, onSuccess }: EmployeeModalProp
       setFormData({
         nip: employee.nip,
         nama: employee.nama,
-        departemen: employee.departemen,
+        departemen: employee.departemen || 'Umum',
         jabatan: employee.jabatan,
         sisa_cuti: employee.sisa_cuti
       });
@@ -48,7 +48,7 @@ const EmployeeModal = ({ open, employee, onClose, onSuccess }: EmployeeModalProp
       setFormData({
         nip: '',
         nama: '',
-        departemen: '',
+        departemen: 'Umum',
         jabatan: '',
         sisa_cuti: 12
       });
@@ -140,16 +140,6 @@ const EmployeeModal = ({ open, employee, onClose, onSuccess }: EmployeeModalProp
               value={formData.nama}
               onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
               placeholder="Masukkan nama lengkap"
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="departemen">Departemen</Label>
-            <Input
-              id="departemen"
-              value={formData.departemen}
-              onChange={(e) => setFormData({ ...formData, departemen: e.target.value })}
-              placeholder="Masukkan departemen"
               required
             />
           </div>

@@ -9,8 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  Users, CalendarDays, LogOut, Plus, Search, 
+import {
+  Users, LogOut, Plus, Search,
   Edit, Trash2, History, FileDown, Loader2, CalendarPlus, CalendarMinus,
   UserCheck, UserX
 } from 'lucide-react';
@@ -34,6 +34,7 @@ const Dashboard = () => {
 
   // Track employees who are currently on leave
   const [onLeaveEmployeeIds, setOnLeaveEmployeeIds] = useState<Set<string>>(new Set());
+  const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
 
   // Modals
   const [employeeModal, setEmployeeModal] = useState<{ open: boolean; employee?: Employee }>({ open: false });
@@ -102,21 +103,71 @@ const Dashboard = () => {
   };
 
   const fetchOnLeaveStatus = async () => {
-    // Get today's date
-    const today = new Date().toISOString().split('T')[0];
-    
-    // Fetch recent leave history to determine who is on leave
-    // We consider someone "on leave" if they have a "kurang" (reduction) entry today
+    // Ambil semua perubahan cuti HARI INI, lalu tentukan status berdasarkan entri TERAKHIR per pegawai.
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const end = new Date();
+    end.setHours(23, 59, 59, 999);
+
     const { data, error } = await supabase
       .from('leave_history')
       .select('employee_id, jenis, tanggal')
-      .eq('jenis', 'kurang')
-      .gte('tanggal', today + 'T00:00:00')
-      .lte('tanggal', today + 'T23:59:59');
+      .gte('tanggal', start.toISOString())
+      .lte('tanggal', end.toISOString())
+      .order('tanggal', { ascending: false });
 
-    if (!error && data) {
-      const onLeaveIds = new Set(data.map(item => item.employee_id));
-      setOnLeaveEmployeeIds(onLeaveIds);
+    if (error || !data) return;
+
+    const latestJenisByEmployee = new Map<string, string>();
+    for (const item of data) {
+      if (!latestJenisByEmployee.has(item.employee_id)) {
+        latestJenisByEmployee.set(item.employee_id, item.jenis);
+      }
+    }
+
+    const onLeaveIds = new Set(
+      Array.from(latestJenisByEmployee.entries())
+        .filter(([, jenis]) => jenis === 'kurang')
+        .map(([employeeId]) => employeeId)
+    );
+
+    setOnLeaveEmployeeIds(onLeaveIds);
+  };
+
+  const handleToggleLeaveStatus = async (employee: Employee) => {
+    if (!user) return;
+
+    const isOnLeave = onLeaveEmployeeIds.has(employee.id);
+    const nextJenis: 'tambah' | 'kurang' = isOnLeave ? 'tambah' : 'kurang';
+    const nextLabel = isOnLeave ? 'Aktif' : 'Sedang Cuti';
+
+    setStatusUpdatingId(employee.id);
+    try {
+      const { error } = await supabase.from('leave_history').insert({
+        employee_id: employee.id,
+        admin_id: user.id,
+        jenis: nextJenis,
+        jumlah: 0,
+        keterangan: `Ubah status menjadi ${nextLabel}`,
+      });
+
+      if (error) {
+        toast({
+          title: 'Error',
+          description: error.message || 'Gagal mengubah status',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      toast({
+        title: 'Berhasil',
+        description: `Status ${employee.nama} sekarang: ${nextLabel}`,
+      });
+
+      await fetchOnLeaveStatus();
+    } finally {
+      setStatusUpdatingId(null);
     }
   };
 
@@ -166,10 +217,9 @@ const Dashboard = () => {
       No: index + 1,
       NIP: emp.nip,
       Nama: emp.nama,
-      Departemen: emp.departemen,
       Jabatan: emp.jabatan,
+      Status: onLeaveEmployeeIds.has(emp.id) ? 'Sedang Cuti' : 'Aktif',
       'Sisa Cuti': emp.sisa_cuti,
-      Status: onLeaveEmployeeIds.has(emp.id) ? 'Sedang Cuti' : 'Tidak Cuti'
     }));
     exportToExcel(exportData, 'data-pegawai');
     toast({
@@ -239,7 +289,13 @@ const Dashboard = () => {
               <p className="text-xs text-muted-foreground">Kemenkumham RI</p>
             </div>
           </div>
-          <Button variant="outline" onClick={signOut}>
+          <Button
+            variant="outline"
+            onClick={async () => {
+              await signOut();
+              navigate('/auth');
+            }}
+          >
             <LogOut className="h-4 w-4 mr-2" />
             Keluar
           </Button>
@@ -338,7 +394,6 @@ const Dashboard = () => {
                       <TableHead className="w-16 text-center">No</TableHead>
                       <TableHead>NIP</TableHead>
                       <TableHead>Nama</TableHead>
-                      <TableHead>Departemen</TableHead>
                       <TableHead>Jabatan</TableHead>
                       <TableHead className="text-center">Status</TableHead>
                       <TableHead className="text-center">Sisa Cuti</TableHead>
@@ -353,20 +408,29 @@ const Dashboard = () => {
                           <TableCell className="text-center font-medium">{index + 1}</TableCell>
                           <TableCell className="font-mono">{employee.nip}</TableCell>
                           <TableCell className="font-medium">{employee.nama}</TableCell>
-                          <TableCell>{employee.departemen}</TableCell>
                           <TableCell>{employee.jabatan}</TableCell>
                           <TableCell className="text-center">
-                            {isOnLeave ? (
-                              <Badge variant="destructive" className="gap-1">
-                                <UserX className="h-3 w-3" />
-                                Cuti
-                              </Badge>
-                            ) : (
-                              <Badge variant="secondary" className="gap-1 bg-success/10 text-success hover:bg-success/20">
-                                <UserCheck className="h-3 w-3" />
-                                Aktif
-                              </Badge>
-                            )}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 px-2"
+                              disabled={statusUpdatingId === employee.id}
+                              onClick={() => handleToggleLeaveStatus(employee)}
+                              title="Klik untuk ubah status"
+                            >
+                              {isOnLeave ? (
+                                <Badge variant="destructive" className="gap-1">
+                                  <UserX className="h-3 w-3" />
+                                  Cuti
+                                </Badge>
+                              ) : (
+                                <Badge variant="secondary" className="gap-1 bg-success/10 text-success hover:bg-success/20">
+                                  <UserCheck className="h-3 w-3" />
+                                  Aktif
+                                </Badge>
+                              )}
+                            </Button>
                           </TableCell>
                           <TableCell className="text-center">
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${

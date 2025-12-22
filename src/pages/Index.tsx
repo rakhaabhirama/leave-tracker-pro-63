@@ -54,7 +54,7 @@ const Index = () => {
             </CardHeader>
             <CardContent>
               <CardDescription className="text-center">
-                Kelola data pegawai lengkap dengan NIP, departemen, dan jabatan
+                Kelola data pegawai lengkap dengan NIP dan jabatan
               </CardDescription>
             </CardContent>
           </Card>
