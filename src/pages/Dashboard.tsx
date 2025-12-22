@@ -11,13 +11,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { 
   Users, CalendarDays, LogOut, Plus, Search, 
-  Edit, Trash2, History, FileDown, Loader2, CalendarPlus, CalendarMinus
+  Edit, Trash2, History, FileDown, Loader2, CalendarPlus, CalendarMinus,
+  UserCheck, UserX
 } from 'lucide-react';
 import EmployeeModal from '@/components/EmployeeModal';
 import LeaveModal from '@/components/LeaveModal';
 import HistoryModal from '@/components/HistoryModal';
 import { exportToExcel } from '@/lib/export';
 import ImigrasiLogo from '@/components/ImigrasiLogo';
+import { Badge } from '@/components/ui/badge';
 
 const Dashboard = () => {
   const { user, isAdmin, loading, signOut } = useAuth();
@@ -27,9 +29,11 @@ const Dashboard = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [departmentFilter, setDepartmentFilter] = useState('all');
-  const [departments, setDepartments] = useState<string[]>([]);
+  const [leaveStatusFilter, setLeaveStatusFilter] = useState('all');
   const [isLoading, setIsLoading] = useState(true);
+
+  // Track employees who are currently on leave
+  const [onLeaveEmployeeIds, setOnLeaveEmployeeIds] = useState<Set<string>>(new Set());
 
   // Modals
   const [employeeModal, setEmployeeModal] = useState<{ open: boolean; employee?: Employee }>({ open: false });
@@ -55,6 +59,7 @@ const Dashboard = () => {
   useEffect(() => {
     if (isAdmin) {
       fetchEmployees();
+      fetchOnLeaveStatus();
     }
   }, [isAdmin]);
 
@@ -68,12 +73,14 @@ const Dashboard = () => {
       );
     }
     
-    if (departmentFilter !== 'all') {
-      filtered = filtered.filter(emp => emp.departemen === departmentFilter);
+    if (leaveStatusFilter === 'cuti') {
+      filtered = filtered.filter(emp => onLeaveEmployeeIds.has(emp.id));
+    } else if (leaveStatusFilter === 'tidak_cuti') {
+      filtered = filtered.filter(emp => !onLeaveEmployeeIds.has(emp.id));
     }
     
     setFilteredEmployees(filtered);
-  }, [employees, searchQuery, departmentFilter]);
+  }, [employees, searchQuery, leaveStatusFilter, onLeaveEmployeeIds]);
 
   const fetchEmployees = async () => {
     setIsLoading(true);
@@ -90,10 +97,27 @@ const Dashboard = () => {
       });
     } else {
       setEmployees(data || []);
-      const uniqueDepts = [...new Set((data || []).map(e => e.departemen))];
-      setDepartments(uniqueDepts);
     }
     setIsLoading(false);
+  };
+
+  const fetchOnLeaveStatus = async () => {
+    // Get today's date
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Fetch recent leave history to determine who is on leave
+    // We consider someone "on leave" if they have a "kurang" (reduction) entry today
+    const { data, error } = await supabase
+      .from('leave_history')
+      .select('employee_id, jenis, tanggal')
+      .eq('jenis', 'kurang')
+      .gte('tanggal', today + 'T00:00:00')
+      .lte('tanggal', today + 'T23:59:59');
+
+    if (!error && data) {
+      const onLeaveIds = new Set(data.map(item => item.employee_id));
+      setOnLeaveEmployeeIds(onLeaveIds);
+    }
   };
 
   const handleDeleteEmployee = async (id: string) => {
@@ -138,7 +162,16 @@ const Dashboard = () => {
   };
 
   const handleExportEmployees = () => {
-    exportToExcel(filteredEmployees, 'data-pegawai');
+    const exportData = filteredEmployees.map((emp, index) => ({
+      No: index + 1,
+      NIP: emp.nip,
+      Nama: emp.nama,
+      Departemen: emp.departemen,
+      Jabatan: emp.jabatan,
+      'Sisa Cuti': emp.sisa_cuti,
+      Status: onLeaveEmployeeIds.has(emp.id) ? 'Sedang Cuti' : 'Tidak Cuti'
+    }));
+    exportToExcel(exportData, 'data-pegawai');
     toast({
       title: "Berhasil",
       description: "Data pegawai berhasil diekspor"
@@ -177,10 +210,13 @@ const Dashboard = () => {
     }
   };
 
+  const handleLeaveSuccess = () => {
+    fetchEmployees();
+    fetchOnLeaveStatus();
+  };
+
   const totalEmployees = employees.length;
-  const avgLeave = employees.length > 0 
-    ? Math.round(employees.reduce((sum, e) => sum + e.sisa_cuti, 0) / employees.length) 
-    : 0;
+  const onLeaveCount = onLeaveEmployeeIds.size;
   const lowLeaveCount = employees.filter(e => e.sisa_cuti <= 3).length;
 
   if (loading || !isAdmin) {
@@ -224,11 +260,12 @@ const Dashboard = () => {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Rata-rata Sisa Cuti</CardTitle>
-              <CalendarDays className="h-4 w-4 text-primary" />
+              <CardTitle className="text-sm font-medium text-muted-foreground">Sedang Cuti</CardTitle>
+              <UserX className="h-4 w-4 text-warning" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{avgLeave} hari</div>
+              <div className="text-2xl font-bold text-warning">{onLeaveCount}</div>
+              <p className="text-xs text-muted-foreground">Pegawai sedang cuti hari ini</p>
             </CardContent>
           </Card>
           <Card>
@@ -255,15 +292,14 @@ const Dashboard = () => {
                 className="pl-10 w-full sm:w-64"
               />
             </div>
-            <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+            <Select value={leaveStatusFilter} onValueChange={setLeaveStatusFilter}>
               <SelectTrigger className="w-full sm:w-48">
-                <SelectValue placeholder="Filter Departemen" />
+                <SelectValue placeholder="Filter Status Cuti" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Semua Departemen</SelectItem>
-                {departments.map(dept => (
-                  <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                ))}
+                <SelectItem value="all">Semua Status</SelectItem>
+                <SelectItem value="cuti">Sedang Cuti</SelectItem>
+                <SelectItem value="tidak_cuti">Tidak Cuti</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -299,78 +335,97 @@ const Dashboard = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-16 text-center">No</TableHead>
                       <TableHead>NIP</TableHead>
                       <TableHead>Nama</TableHead>
                       <TableHead>Departemen</TableHead>
                       <TableHead>Jabatan</TableHead>
+                      <TableHead className="text-center">Status</TableHead>
                       <TableHead className="text-center">Sisa Cuti</TableHead>
                       <TableHead className="text-right">Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredEmployees.map((employee) => (
-                      <TableRow key={employee.id}>
-                        <TableCell className="font-mono">{employee.nip}</TableCell>
-                        <TableCell className="font-medium">{employee.nama}</TableCell>
-                        <TableCell>{employee.departemen}</TableCell>
-                        <TableCell>{employee.jabatan}</TableCell>
-                        <TableCell className="text-center">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            employee.sisa_cuti <= 3 
-                              ? 'bg-destructive/10 text-destructive' 
-                              : employee.sisa_cuti <= 6 
-                                ? 'bg-warning/10 text-warning' 
-                                : 'bg-success/10 text-success'
-                          }`}>
-                            {employee.sisa_cuti} hari
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center justify-end gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => setLeaveModal({ open: true, employee, type: 'tambah' })}
-                              title="Tambah Cuti"
-                            >
-                              <CalendarPlus className="h-4 w-4 text-success" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => setLeaveModal({ open: true, employee, type: 'kurang' })}
-                              title="Kurangi Cuti"
-                            >
-                              <CalendarMinus className="h-4 w-4 text-destructive" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleViewHistory(employee)}
-                              title="Lihat Riwayat"
-                            >
-                              <History className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => setEmployeeModal({ open: true, employee })}
-                              title="Edit"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDeleteEmployee(employee.id)}
-                              title="Hapus"
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {filteredEmployees.map((employee, index) => {
+                      const isOnLeave = onLeaveEmployeeIds.has(employee.id);
+                      return (
+                        <TableRow key={employee.id}>
+                          <TableCell className="text-center font-medium">{index + 1}</TableCell>
+                          <TableCell className="font-mono">{employee.nip}</TableCell>
+                          <TableCell className="font-medium">{employee.nama}</TableCell>
+                          <TableCell>{employee.departemen}</TableCell>
+                          <TableCell>{employee.jabatan}</TableCell>
+                          <TableCell className="text-center">
+                            {isOnLeave ? (
+                              <Badge variant="destructive" className="gap-1">
+                                <UserX className="h-3 w-3" />
+                                Cuti
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary" className="gap-1 bg-success/10 text-success hover:bg-success/20">
+                                <UserCheck className="h-3 w-3" />
+                                Aktif
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              employee.sisa_cuti <= 3 
+                                ? 'bg-destructive/10 text-destructive' 
+                                : employee.sisa_cuti <= 6 
+                                  ? 'bg-warning/10 text-warning' 
+                                  : 'bg-success/10 text-success'
+                            }`}>
+                              {employee.sisa_cuti} hari
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setLeaveModal({ open: true, employee, type: 'tambah' })}
+                                title="Tambah Cuti"
+                              >
+                                <CalendarPlus className="h-4 w-4 text-success" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setLeaveModal({ open: true, employee, type: 'kurang' })}
+                                title="Kurangi Cuti"
+                              >
+                                <CalendarMinus className="h-4 w-4 text-destructive" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleViewHistory(employee)}
+                                title="Lihat Riwayat"
+                              >
+                                <History className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setEmployeeModal({ open: true, employee })}
+                                title="Edit"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDeleteEmployee(employee.id)}
+                                title="Hapus"
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
@@ -391,7 +446,7 @@ const Dashboard = () => {
         employee={leaveModal.employee}
         type={leaveModal.type}
         onClose={() => setLeaveModal({ open: false })}
-        onSuccess={fetchEmployees}
+        onSuccess={handleLeaveSuccess}
       />
       <HistoryModal
         open={historyModal.open}
