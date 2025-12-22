@@ -119,7 +119,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       if (cancelled) return;
-      // Jangan panggil Supabase lagi langsung di callback ini.
+      // Set loading TRUE terlebih dahulu agar consumer tahu kita sedang memproses
+      setLoading(true);
       setAuthState(nextSession);
       window.setTimeout(() => {
         if (cancelled) return;
