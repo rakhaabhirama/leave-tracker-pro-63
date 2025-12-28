@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, CalendarPlus, CalendarMinus } from 'lucide-react';
@@ -21,22 +22,29 @@ interface LeaveModalProps {
 
 const leaveSchema = z.object({
   jumlah: z.number().min(1, "Jumlah minimal 1 hari"),
-  keterangan: z.string().trim().min(1, "Keterangan wajib diisi").max(500, "Keterangan maksimal 500 karakter")
+  keterangan: z.string().trim().min(1, "Keterangan wajib diisi").max(500, "Keterangan maksimal 500 karakter"),
+  tahun: z.enum(['2025', '2026'])
 });
 
 const LeaveModal = ({ open, employee, type = 'kurang', onClose, onSuccess }: LeaveModalProps) => {
   const [jumlah, setJumlah] = useState(1);
   const [keterangan, setKeterangan] = useState('');
+  const [tahun, setTahun] = useState<'2025' | '2026'>('2025');
   const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
+
+  const getSisaCuti = () => {
+    if (!employee) return 0;
+    return tahun === '2025' ? employee.sisa_cuti_2025 : employee.sisa_cuti_2026;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!employee || !user) return;
 
-    const validation = leaveSchema.safeParse({ jumlah, keterangan });
+    const validation = leaveSchema.safeParse({ jumlah, keterangan, tahun });
     if (!validation.success) {
       toast({
         title: "Error",
@@ -46,11 +54,13 @@ const LeaveModal = ({ open, employee, type = 'kurang', onClose, onSuccess }: Lea
       return;
     }
 
+    const sisaCuti = getSisaCuti();
+
     // Validasi sisa cuti tidak boleh minus
-    if (type === 'kurang' && employee.sisa_cuti < jumlah) {
+    if (type === 'kurang' && sisaCuti < jumlah) {
       toast({
         title: "Error",
-        description: `Sisa cuti tidak mencukupi. Sisa: ${employee.sisa_cuti} hari`,
+        description: `Sisa cuti ${tahun} tidak mencukupi. Sisa: ${sisaCuti} hari`,
         variant: "destructive"
       });
       return;
@@ -59,14 +69,18 @@ const LeaveModal = ({ open, employee, type = 'kurang', onClose, onSuccess }: Lea
     setIsLoading(true);
 
     try {
-      // Update sisa cuti pegawai
+      // Update sisa cuti pegawai berdasarkan tahun
       const newSisaCuti = type === 'tambah' 
-        ? employee.sisa_cuti + jumlah 
-        : employee.sisa_cuti - jumlah;
+        ? sisaCuti + jumlah 
+        : sisaCuti - jumlah;
+
+      const updateData = tahun === '2025' 
+        ? { sisa_cuti_2025: newSisaCuti }
+        : { sisa_cuti_2026: newSisaCuti };
 
       const { error: updateError } = await supabase
         .from('employees')
-        .update({ sisa_cuti: newSisaCuti })
+        .update(updateData)
         .eq('id', employee.id);
 
       if (updateError) throw updateError;
@@ -78,7 +92,7 @@ const LeaveModal = ({ open, employee, type = 'kurang', onClose, onSuccess }: Lea
           employee_id: employee.id,
           jenis: type,
           jumlah,
-          keterangan,
+          keterangan: `[${tahun}] ${keterangan}`,
           admin_id: user.id
         });
 
@@ -87,12 +101,13 @@ const LeaveModal = ({ open, employee, type = 'kurang', onClose, onSuccess }: Lea
       toast({
         title: "Berhasil",
         description: type === 'tambah' 
-          ? `${jumlah} hari cuti berhasil ditambahkan` 
-          : `${jumlah} hari cuti berhasil dikurangi`
+          ? `${jumlah} hari cuti ${tahun} berhasil ditambahkan` 
+          : `${jumlah} hari cuti ${tahun} berhasil dikurangi`
       });
 
       setJumlah(1);
       setKeterangan('');
+      setTahun('2025');
       onSuccess();
       onClose();
     } catch (error: any) {
@@ -107,6 +122,7 @@ const LeaveModal = ({ open, employee, type = 'kurang', onClose, onSuccess }: Lea
   };
 
   const isTambah = type === 'tambah';
+  const sisaCuti = getSisaCuti();
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -127,18 +143,30 @@ const LeaveModal = ({ open, employee, type = 'kurang', onClose, onSuccess }: Lea
           </DialogTitle>
           {employee && (
             <DialogDescription>
-              {employee.nama} - Sisa cuti saat ini: <strong>{employee.sisa_cuti} hari</strong>
+              {employee.nama} - Sisa cuti {tahun}: <strong>{sisaCuti} hari</strong>
             </DialogDescription>
           )}
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="tahun">Tahun Cuti</Label>
+            <Select value={tahun} onValueChange={(v) => setTahun(v as '2025' | '2026')}>
+              <SelectTrigger>
+                <SelectValue placeholder="Pilih tahun" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="2025">2025 (Sisa: {employee?.sisa_cuti_2025 ?? 0} hari)</SelectItem>
+                <SelectItem value="2026">2026 (Sisa: {employee?.sisa_cuti_2026 ?? 0} hari)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <div className="space-y-2">
             <Label htmlFor="jumlah">Jumlah Hari</Label>
             <Input
               id="jumlah"
               type="number"
               min="1"
-              max={isTambah ? undefined : employee?.sisa_cuti}
+              max={isTambah ? undefined : sisaCuti}
               value={jumlah}
               onChange={(e) => setJumlah(parseInt(e.target.value) || 1)}
               required
@@ -150,7 +178,7 @@ const LeaveModal = ({ open, employee, type = 'kurang', onClose, onSuccess }: Lea
               id="keterangan"
               value={keterangan}
               onChange={(e) => setKeterangan(e.target.value)}
-              placeholder={isTambah ? "Contoh: Reset cuti tahunan 2025" : "Contoh: Cuti tahunan, Sakit, dll"}
+              placeholder={isTambah ? "Contoh: Reset cuti tahunan" : "Contoh: Cuti tahunan, Sakit, dll"}
               required
               rows={3}
             />

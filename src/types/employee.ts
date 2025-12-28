@@ -3,8 +3,8 @@ export interface Employee {
   nip: string;
   nama: string;
   departemen: string;
-  jabatan: string;
-  sisa_cuti: number;
+  sisa_cuti_2025: number;
+  sisa_cuti_2026: number;
   created_at: string;
   updated_at: string;
 }

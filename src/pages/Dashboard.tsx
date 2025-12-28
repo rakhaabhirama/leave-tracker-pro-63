@@ -218,9 +218,9 @@ const Dashboard = () => {
       No: index + 1,
       NIP: emp.nip,
       Nama: emp.nama,
-      Jabatan: emp.jabatan,
       Status: onLeaveEmployeeIds.has(emp.id) ? 'Sedang Cuti' : 'Aktif',
-      'Sisa Cuti': emp.sisa_cuti,
+      'Sisa Cuti 2025': emp.sisa_cuti_2025,
+      'Sisa Cuti 2026': emp.sisa_cuti_2026,
     }));
     exportToExcel(exportData, 'data-pegawai');
     toast({
@@ -268,7 +268,7 @@ const Dashboard = () => {
 
   const totalEmployees = employees.length;
   const onLeaveCount = onLeaveEmployeeIds.size;
-  const lowLeaveCount = employees.filter(e => e.sisa_cuti <= 3).length;
+  const lowLeaveCount = employees.filter(e => e.sisa_cuti_2025 <= 3 || e.sisa_cuti_2026 <= 3).length;
 
   if (loading) {
     return (
@@ -407,9 +407,9 @@ const Dashboard = () => {
                       <TableHead className="w-16 text-center">No</TableHead>
                       <TableHead>NIP</TableHead>
                       <TableHead>Nama</TableHead>
-                      <TableHead>Jabatan</TableHead>
                       <TableHead className="text-center">Status</TableHead>
-                      <TableHead className="text-center">Sisa Cuti</TableHead>
+                      <TableHead className="text-center">Cuti 2025</TableHead>
+                      <TableHead className="text-center">Cuti 2026</TableHead>
                       <TableHead className="text-right">Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -421,7 +421,6 @@ const Dashboard = () => {
                           <TableCell className="text-center font-medium">{index + 1}</TableCell>
                           <TableCell className="font-mono">{employee.nip}</TableCell>
                           <TableCell className="font-medium">{employee.nama}</TableCell>
-                          <TableCell>{employee.jabatan}</TableCell>
                           <TableCell className="text-center">
                             <Button
                               type="button"
@@ -447,13 +446,24 @@ const Dashboard = () => {
                           </TableCell>
                           <TableCell className="text-center">
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              employee.sisa_cuti <= 3 
+                              employee.sisa_cuti_2025 <= 3 
                                 ? 'bg-destructive/10 text-destructive' 
-                                : employee.sisa_cuti <= 6 
+                                : employee.sisa_cuti_2025 <= 6 
                                   ? 'bg-warning/10 text-warning' 
                                   : 'bg-success/10 text-success'
                             }`}>
-                              {employee.sisa_cuti} hari
+                              {employee.sisa_cuti_2025} hari
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              employee.sisa_cuti_2026 <= 3 
+                                ? 'bg-destructive/10 text-destructive' 
+                                : employee.sisa_cuti_2026 <= 6 
+                                  ? 'bg-warning/10 text-warning' 
+                                  : 'bg-success/10 text-success'
+                            }`}>
+                              {employee.sisa_cuti_2026} hari
                             </span>
                           </TableCell>
                           <TableCell>
