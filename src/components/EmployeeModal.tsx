@@ -19,16 +19,16 @@ interface EmployeeModalProps {
 const employeeSchema = z.object({
   nip: z.string().trim().min(1, "NIP wajib diisi").max(50, "NIP maksimal 50 karakter"),
   nama: z.string().trim().min(1, "Nama wajib diisi").max(255, "Nama maksimal 255 karakter"),
-  jabatan: z.string().trim().min(1, "Jabatan wajib diisi").max(100, "Jabatan maksimal 100 karakter"),
-  sisa_cuti: z.number().min(0, "Sisa cuti tidak boleh negatif")
+  sisa_cuti_2025: z.number().min(0, "Sisa cuti tidak boleh negatif"),
+  sisa_cuti_2026: z.number().min(0, "Sisa cuti tidak boleh negatif")
 });
 
 const EmployeeModal = ({ open, employee, onClose, onSuccess }: EmployeeModalProps) => {
   const [formData, setFormData] = useState({
     nip: '',
     nama: '',
-    jabatan: '',
-    sisa_cuti: 12
+    sisa_cuti_2025: 12,
+    sisa_cuti_2026: 12
   });
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -38,15 +38,15 @@ const EmployeeModal = ({ open, employee, onClose, onSuccess }: EmployeeModalProp
       setFormData({
         nip: employee.nip,
         nama: employee.nama,
-        jabatan: employee.jabatan,
-        sisa_cuti: employee.sisa_cuti
+        sisa_cuti_2025: employee.sisa_cuti_2025,
+        sisa_cuti_2026: employee.sisa_cuti_2026
       });
     } else {
       setFormData({
         nip: '',
         nama: '',
-        jabatan: '',
-        sisa_cuti: 12
+        sisa_cuti_2025: 12,
+        sisa_cuti_2026: 12
       });
     }
   }, [employee, open]);
@@ -140,23 +140,24 @@ const EmployeeModal = ({ open, employee, onClose, onSuccess }: EmployeeModalProp
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="jabatan">Jabatan</Label>
+            <Label htmlFor="sisa_cuti_2025">Sisa Cuti 2025 (hari)</Label>
             <Input
-              id="jabatan"
-              value={formData.jabatan}
-              onChange={(e) => setFormData({ ...formData, jabatan: e.target.value })}
-              placeholder="Masukkan jabatan"
+              id="sisa_cuti_2025"
+              type="number"
+              min="0"
+              value={formData.sisa_cuti_2025}
+              onChange={(e) => setFormData({ ...formData, sisa_cuti_2025: parseInt(e.target.value) || 0 })}
               required
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="sisa_cuti">Sisa Cuti (hari)</Label>
+            <Label htmlFor="sisa_cuti_2026">Sisa Cuti 2026 (hari)</Label>
             <Input
-              id="sisa_cuti"
+              id="sisa_cuti_2026"
               type="number"
               min="0"
-              value={formData.sisa_cuti}
-              onChange={(e) => setFormData({ ...formData, sisa_cuti: parseInt(e.target.value) || 0 })}
+              value={formData.sisa_cuti_2026}
+              onChange={(e) => setFormData({ ...formData, sisa_cuti_2026: parseInt(e.target.value) || 0 })}
               required
             />
           </div>

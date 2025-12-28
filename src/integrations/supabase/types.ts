@@ -19,30 +19,30 @@ export type Database = {
           created_at: string
           departemen: string
           id: string
-          jabatan: string
           nama: string
           nip: string
-          sisa_cuti: number
+          sisa_cuti_2025: number
+          sisa_cuti_2026: number
           updated_at: string
         }
         Insert: {
           created_at?: string
           departemen: string
           id?: string
-          jabatan: string
           nama: string
           nip: string
-          sisa_cuti?: number
+          sisa_cuti_2025?: number
+          sisa_cuti_2026?: number
           updated_at?: string
         }
         Update: {
           created_at?: string
           departemen?: string
           id?: string
-          jabatan?: string
           nama?: string
           nip?: string
-          sisa_cuti?: number
+          sisa_cuti_2025?: number
+          sisa_cuti_2026?: number
           updated_at?: string
         }
         Relationships: []
