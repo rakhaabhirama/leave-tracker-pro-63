@@ -1,34 +1,20 @@
-import { Employee } from '@/types/employee';
-
-export const exportToExcel = (data: Employee[] | Record<string, any>[], filename: string) => {
+export const exportToExcel = (data: Record<string, any>[], filename: string) => {
   if (data.length === 0) return;
 
-  // Determine if it's employee data or custom data
-  const isEmployeeData = 'nip' in data[0];
+  const headers = Object.keys(data[0]);
+  const rows = data.map(item => headers.map(header => {
+    const value = item[header];
+    // Escape quotes and handle special characters
+    if (typeof value === 'string') {
+      return `"${value.replace(/"/g, '""')}"`;
+    }
+    return value?.toString() || '';
+  }));
   
-  let csvContent: string;
-  
-  if (isEmployeeData) {
-    const headers = ['NIP', 'Nama', 'Sisa Cuti 2025', 'Sisa Cuti 2026'];
-    const rows = (data as Employee[]).map(emp => [
-      emp.nip,
-      emp.nama,
-      emp.sisa_cuti_2025.toString(),
-      emp.sisa_cuti_2026.toString()
-    ]);
-    
-    csvContent = [headers, ...rows]
-      .map(row => row.map(cell => `"${cell}"`).join(','))
-      .join('\n');
-  } else {
-    // Custom data (like history export)
-    const headers = Object.keys(data[0]);
-    const rows = data.map(item => headers.map(header => item[header]?.toString() || ''));
-    
-    csvContent = [headers, ...rows]
-      .map(row => row.map(cell => `"${cell}"`).join(','))
-      .join('\n');
-  }
+  const csvContent = [
+    headers.join(','),
+    ...rows.map(row => row.join(','))
+  ].join('\n');
 
   // Add BOM for Excel to recognize UTF-8
   const BOM = '\uFEFF';

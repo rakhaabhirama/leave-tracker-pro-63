@@ -21,9 +21,9 @@ export type Database = {
           id: string
           nama: string
           nip: string
-          sisa_cuti_2025: number
-          sisa_cuti_2026: number
+          sisa_cuti: number
           updated_at: string
+          year: number
         }
         Insert: {
           created_at?: string
@@ -31,9 +31,9 @@ export type Database = {
           id?: string
           nama: string
           nip: string
-          sisa_cuti_2025?: number
-          sisa_cuti_2026?: number
+          sisa_cuti?: number
           updated_at?: string
+          year?: number
         }
         Update: {
           created_at?: string
@@ -41,9 +41,9 @@ export type Database = {
           id?: string
           nama?: string
           nip?: string
-          sisa_cuti_2025?: number
-          sisa_cuti_2026?: number
+          sisa_cuti?: number
           updated_at?: string
+          year?: number
         }
         Relationships: []
       }
@@ -106,6 +106,24 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      years: {
+        Row: {
+          created_at: string
+          id: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          year?: number
         }
         Relationships: []
       }

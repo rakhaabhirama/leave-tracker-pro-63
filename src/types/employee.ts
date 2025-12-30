@@ -3,8 +3,8 @@ export interface Employee {
   nip: string;
   nama: string;
   departemen: string;
-  sisa_cuti_2025: number;
-  sisa_cuti_2026: number;
+  year: number;
+  sisa_cuti: number;
   created_at: string;
   updated_at: string;
 }
@@ -17,5 +17,11 @@ export interface LeaveHistory {
   jumlah: number;
   keterangan: string;
   admin_id: string;
+  created_at: string;
+}
+
+export interface Year {
+  id: string;
+  year: number;
   created_at: string;
 }
