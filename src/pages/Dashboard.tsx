@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Employee, LeaveHistory } from '@/types/employee';
+import { Employee, LeaveHistory, Year } from '@/types/employee';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,6 +17,7 @@ import {
 import EmployeeModal from '@/components/EmployeeModal';
 import LeaveModal from '@/components/LeaveModal';
 import HistoryModal from '@/components/HistoryModal';
+import YearSelector from '@/components/YearSelector';
 import { exportToExcel } from '@/lib/export';
 import ImigrasiLogo from '@/components/ImigrasiLogo';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +28,8 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const [years, setYears] = useState<Year[]>([]);
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -60,10 +63,16 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (isAdmin) {
+      fetchYears();
+    }
+  }, [isAdmin]);
+
+  useEffect(() => {
+    if (selectedYear) {
       fetchEmployees();
       fetchOnLeaveStatus();
     }
-  }, [isAdmin]);
+  }, [selectedYear]);
 
   useEffect(() => {
     let filtered = employees;
@@ -84,11 +93,34 @@ const Dashboard = () => {
     setFilteredEmployees(filtered);
   }, [employees, searchQuery, leaveStatusFilter, onLeaveEmployeeIds]);
 
+  const fetchYears = async () => {
+    const { data, error } = await supabase
+      .from('years')
+      .select('*')
+      .order('year', { ascending: false });
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: error.message || "Gagal mengambil data tahun",
+        variant: "destructive"
+      });
+    } else {
+      setYears(data || []);
+      if (data && data.length > 0 && !selectedYear) {
+        setSelectedYear(data[0].year);
+      }
+    }
+  };
+
   const fetchEmployees = async () => {
+    if (!selectedYear) return;
+    
     setIsLoading(true);
     const { data, error } = await supabase
       .from('employees')
       .select('*')
+      .eq('year', selectedYear)
       .order('nama');
 
     if (error) {
@@ -218,11 +250,11 @@ const Dashboard = () => {
       No: index + 1,
       NIP: emp.nip,
       Nama: emp.nama,
+      Tahun: emp.year,
       Status: onLeaveEmployeeIds.has(emp.id) ? 'Sedang Cuti' : 'Aktif',
-      'Sisa Cuti 2025': emp.sisa_cuti_2025,
-      'Sisa Cuti 2026': emp.sisa_cuti_2026,
+      'Sisa Cuti': emp.sisa_cuti,
     }));
-    exportToExcel(exportData, 'data-pegawai');
+    exportToExcel(exportData, `data-pegawai-${selectedYear}`);
     toast({
       title: "Berhasil",
       description: "Data pegawai berhasil diekspor"
@@ -234,7 +266,7 @@ const Dashboard = () => {
       .from('leave_history')
       .select(`
         *,
-        employees(nama, nip)
+        employees(nama, nip, year)
       `)
       .order('tanggal', { ascending: false });
 
@@ -248,6 +280,7 @@ const Dashboard = () => {
       const exportData = (data || []).map((item: any) => ({
         Nama: item.employees?.nama || '-',
         NIP: item.employees?.nip || '-',
+        Tahun: item.employees?.year || '-',
         Tanggal: new Date(item.tanggal).toLocaleDateString('id-ID'),
         Jenis: item.jenis === 'tambah' ? 'Penambahan' : 'Pengurangan',
         Jumlah: item.jumlah,
@@ -268,7 +301,7 @@ const Dashboard = () => {
 
   const totalEmployees = employees.length;
   const onLeaveCount = onLeaveEmployeeIds.size;
-  const lowLeaveCount = employees.filter(e => e.sisa_cuti_2025 <= 3 || e.sisa_cuti_2026 <= 3).length;
+  const lowLeaveCount = employees.filter(e => e.sisa_cuti <= 3).length;
 
   if (loading) {
     return (
@@ -316,11 +349,21 @@ const Dashboard = () => {
       </header>
 
       <main className="container mx-auto px-4 py-6 space-y-6">
+        {/* Year Selector */}
+        <div className="flex items-center justify-between">
+          <YearSelector
+            years={years}
+            selectedYear={selectedYear}
+            onYearChange={setSelectedYear}
+            onYearAdded={fetchYears}
+          />
+        </div>
+
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Pegawai</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Pegawai {selectedYear}</CardTitle>
               <Users className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
@@ -373,11 +416,15 @@ const Dashboard = () => {
             </Select>
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
-            <Button onClick={() => setEmployeeModal({ open: true })} className="flex-1 sm:flex-none">
+            <Button 
+              onClick={() => setEmployeeModal({ open: true })} 
+              className="flex-1 sm:flex-none"
+              disabled={!selectedYear}
+            >
               <Plus className="h-4 w-4 mr-2" />
               Tambah Pegawai
             </Button>
-            <Button variant="outline" onClick={handleExportEmployees}>
+            <Button variant="outline" onClick={handleExportEmployees} disabled={!selectedYear}>
               <FileDown className="h-4 w-4 mr-2" />
               Ekspor
             </Button>
@@ -391,13 +438,17 @@ const Dashboard = () => {
         {/* Table */}
         <Card>
           <CardContent className="p-0">
-            {isLoading ? (
+            {!selectedYear ? (
+              <div className="text-center py-12 text-muted-foreground">
+                Pilih tahun untuk melihat data pegawai
+              </div>
+            ) : isLoading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
             ) : filteredEmployees.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
-                {employees.length === 0 ? 'Belum ada data pegawai' : 'Tidak ada hasil pencarian'}
+                {employees.length === 0 ? `Belum ada data pegawai untuk tahun ${selectedYear}` : 'Tidak ada hasil pencarian'}
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -408,8 +459,7 @@ const Dashboard = () => {
                       <TableHead>NIP</TableHead>
                       <TableHead>Nama</TableHead>
                       <TableHead className="text-center">Status</TableHead>
-                      <TableHead className="text-center">Cuti 2025</TableHead>
-                      <TableHead className="text-center">Cuti 2026</TableHead>
+                      <TableHead className="text-center">Sisa Cuti</TableHead>
                       <TableHead className="text-right">Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -446,24 +496,13 @@ const Dashboard = () => {
                           </TableCell>
                           <TableCell className="text-center">
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              employee.sisa_cuti_2025 <= 3 
+                              employee.sisa_cuti <= 3 
                                 ? 'bg-destructive/10 text-destructive' 
-                                : employee.sisa_cuti_2025 <= 6 
+                                : employee.sisa_cuti <= 6 
                                   ? 'bg-warning/10 text-warning' 
                                   : 'bg-success/10 text-success'
                             }`}>
-                              {employee.sisa_cuti_2025} hari
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              employee.sisa_cuti_2026 <= 3 
-                                ? 'bg-destructive/10 text-destructive' 
-                                : employee.sisa_cuti_2026 <= 6 
-                                  ? 'bg-warning/10 text-warning' 
-                                  : 'bg-success/10 text-success'
-                            }`}>
-                              {employee.sisa_cuti_2026} hari
+                              {employee.sisa_cuti} hari
                             </span>
                           </TableCell>
                           <TableCell>
@@ -525,6 +564,7 @@ const Dashboard = () => {
       <EmployeeModal
         open={employeeModal.open}
         employee={employeeModal.employee}
+        selectedYear={selectedYear || new Date().getFullYear()}
         onClose={() => setEmployeeModal({ open: false })}
         onSuccess={fetchEmployees}
       />

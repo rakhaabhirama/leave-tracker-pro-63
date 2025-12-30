@@ -12,6 +12,7 @@ import { z } from 'zod';
 interface EmployeeModalProps {
   open: boolean;
   employee?: Employee;
+  selectedYear: number;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -19,16 +20,14 @@ interface EmployeeModalProps {
 const employeeSchema = z.object({
   nip: z.string().trim().min(1, "NIP wajib diisi").max(50, "NIP maksimal 50 karakter"),
   nama: z.string().trim().min(1, "Nama wajib diisi").max(255, "Nama maksimal 255 karakter"),
-  sisa_cuti_2025: z.number().min(0, "Sisa cuti tidak boleh negatif"),
-  sisa_cuti_2026: z.number().min(0, "Sisa cuti tidak boleh negatif")
+  sisa_cuti: z.number().min(0, "Sisa cuti tidak boleh negatif")
 });
 
-const EmployeeModal = ({ open, employee, onClose, onSuccess }: EmployeeModalProps) => {
+const EmployeeModal = ({ open, employee, selectedYear, onClose, onSuccess }: EmployeeModalProps) => {
   const [formData, setFormData] = useState({
     nip: '',
     nama: '',
-    sisa_cuti_2025: 12,
-    sisa_cuti_2026: 12
+    sisa_cuti: 12
   });
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -38,15 +37,13 @@ const EmployeeModal = ({ open, employee, onClose, onSuccess }: EmployeeModalProp
       setFormData({
         nip: employee.nip,
         nama: employee.nama,
-        sisa_cuti_2025: employee.sisa_cuti_2025,
-        sisa_cuti_2026: employee.sisa_cuti_2026
+        sisa_cuti: employee.sisa_cuti
       });
     } else {
       setFormData({
         nip: '',
         nama: '',
-        sisa_cuti_2025: 12,
-        sisa_cuti_2026: 12
+        sisa_cuti: 12
       });
     }
   }, [employee, open]);
@@ -81,13 +78,17 @@ const EmployeeModal = ({ open, employee, onClose, onSuccess }: EmployeeModalProp
       } else {
         const { error } = await supabase
           .from('employees')
-          .insert({ ...formData, departemen: 'Umum' });
+          .insert({ 
+            ...formData, 
+            departemen: 'Umum',
+            year: selectedYear
+          });
 
         if (error) {
           if (error.code === '23505') {
             toast({
               title: "Error",
-              description: "NIP sudah terdaftar",
+              description: "NIP sudah terdaftar di tahun ini",
               variant: "destructive"
             });
             return;
@@ -96,7 +97,7 @@ const EmployeeModal = ({ open, employee, onClose, onSuccess }: EmployeeModalProp
         }
         toast({
           title: "Berhasil",
-          description: "Pegawai baru berhasil ditambahkan"
+          description: `Pegawai baru berhasil ditambahkan untuk tahun ${selectedYear}`
         });
       }
       onSuccess();
@@ -116,7 +117,9 @@ const EmployeeModal = ({ open, employee, onClose, onSuccess }: EmployeeModalProp
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{employee ? 'Edit Pegawai' : 'Tambah Pegawai Baru'}</DialogTitle>
+          <DialogTitle>
+            {employee ? 'Edit Pegawai' : `Tambah Pegawai (${selectedYear})`}
+          </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -140,24 +143,13 @@ const EmployeeModal = ({ open, employee, onClose, onSuccess }: EmployeeModalProp
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="sisa_cuti_2025">Sisa Cuti 2025 (hari)</Label>
+            <Label htmlFor="sisa_cuti">Sisa Cuti (hari)</Label>
             <Input
-              id="sisa_cuti_2025"
+              id="sisa_cuti"
               type="number"
               min="0"
-              value={formData.sisa_cuti_2025}
-              onChange={(e) => setFormData({ ...formData, sisa_cuti_2025: parseInt(e.target.value) || 0 })}
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="sisa_cuti_2026">Sisa Cuti 2026 (hari)</Label>
-            <Input
-              id="sisa_cuti_2026"
-              type="number"
-              min="0"
-              value={formData.sisa_cuti_2026}
-              onChange={(e) => setFormData({ ...formData, sisa_cuti_2026: parseInt(e.target.value) || 0 })}
+              value={formData.sisa_cuti}
+              onChange={(e) => setFormData({ ...formData, sisa_cuti: parseInt(e.target.value) || 0 })}
               required
             />
           </div>
