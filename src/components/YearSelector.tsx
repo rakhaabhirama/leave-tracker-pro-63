@@ -33,15 +33,47 @@ const YearSelector = ({ years, selectedYear, onYearChange, onYearAdded }: YearSe
 
     setIsLoading(true);
     try {
-      const { error } = await supabase
+      // Insert new year
+      const { error: yearError } = await supabase
         .from('years')
         .insert({ year: newYear });
 
-      if (error) throw error;
+      if (yearError) throw yearError;
+
+      // Find the closest previous year that has data
+      const sortedYears = [...years].sort((a, b) => b.year - a.year);
+      const previousYear = sortedYears.find(y => y.year < newYear);
+
+      if (previousYear) {
+        // Get employees from previous year
+        const { data: prevEmployees, error: fetchError } = await supabase
+          .from('employees')
+          .select('nama, nip, departemen, sisa_cuti')
+          .eq('year', previousYear.year);
+
+        if (fetchError) throw fetchError;
+
+        if (prevEmployees && prevEmployees.length > 0) {
+          // Copy employees to new year with reset sisa_cuti to 12
+          const newEmployees = prevEmployees.map(emp => ({
+            nama: emp.nama,
+            nip: emp.nip,
+            departemen: emp.departemen,
+            sisa_cuti: 12,
+            year: newYear
+          }));
+
+          const { error: insertError } = await supabase
+            .from('employees')
+            .insert(newEmployees);
+
+          if (insertError) throw insertError;
+        }
+      }
 
       toast({
         title: "Berhasil",
-        description: `Tahun ${newYear} berhasil ditambahkan`
+        description: `Tahun ${newYear} berhasil ditambahkan${previousYear ? ` dengan ${previousYear.year} pegawai` : ''}`
       });
       setIsModalOpen(false);
       onYearAdded();
