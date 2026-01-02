@@ -12,7 +12,7 @@ import { z } from 'zod';
 interface EmployeeModalProps {
   open: boolean;
   employee?: Employee;
-  selectedYear: number;
+  currentYear: number;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -20,14 +20,16 @@ interface EmployeeModalProps {
 const employeeSchema = z.object({
   nip: z.string().trim().min(1, "NIP wajib diisi").max(50, "NIP maksimal 50 karakter"),
   nama: z.string().trim().min(1, "Nama wajib diisi").max(255, "Nama maksimal 255 karakter"),
-  sisa_cuti: z.number().min(0, "Sisa cuti tidak boleh negatif")
+  sisa_cuti_tahun_lalu: z.number().min(0, "Sisa cuti tidak boleh negatif"),
+  sisa_cuti_tahun_ini: z.number().min(0, "Sisa cuti tidak boleh negatif")
 });
 
-const EmployeeModal = ({ open, employee, selectedYear, onClose, onSuccess }: EmployeeModalProps) => {
+const EmployeeModal = ({ open, employee, currentYear, onClose, onSuccess }: EmployeeModalProps) => {
   const [formData, setFormData] = useState({
     nip: '',
     nama: '',
-    sisa_cuti: 12
+    sisa_cuti_tahun_lalu: 0,
+    sisa_cuti_tahun_ini: 12
   });
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -37,13 +39,15 @@ const EmployeeModal = ({ open, employee, selectedYear, onClose, onSuccess }: Emp
       setFormData({
         nip: employee.nip,
         nama: employee.nama,
-        sisa_cuti: employee.sisa_cuti
+        sisa_cuti_tahun_lalu: employee.sisa_cuti_tahun_lalu,
+        sisa_cuti_tahun_ini: employee.sisa_cuti_tahun_ini
       });
     } else {
       setFormData({
         nip: '',
         nama: '',
-        sisa_cuti: 12
+        sisa_cuti_tahun_lalu: 0,
+        sisa_cuti_tahun_ini: 12
       });
     }
   }, [employee, open]);
@@ -80,15 +84,14 @@ const EmployeeModal = ({ open, employee, selectedYear, onClose, onSuccess }: Emp
           .from('employees')
           .insert({ 
             ...formData, 
-            departemen: 'Umum',
-            year: selectedYear
+            departemen: 'Umum'
           });
 
         if (error) {
           if (error.code === '23505') {
             toast({
               title: "Error",
-              description: "NIP sudah terdaftar di tahun ini",
+              description: "NIP sudah terdaftar",
               variant: "destructive"
             });
             return;
@@ -97,7 +100,7 @@ const EmployeeModal = ({ open, employee, selectedYear, onClose, onSuccess }: Emp
         }
         toast({
           title: "Berhasil",
-          description: `Pegawai baru berhasil ditambahkan untuk tahun ${selectedYear}`
+          description: "Pegawai baru berhasil ditambahkan"
         });
       }
       onSuccess();
@@ -118,7 +121,7 @@ const EmployeeModal = ({ open, employee, selectedYear, onClose, onSuccess }: Emp
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {employee ? 'Edit Pegawai' : `Tambah Pegawai (${selectedYear})`}
+            {employee ? 'Edit Pegawai' : 'Tambah Pegawai'}
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -142,16 +145,29 @@ const EmployeeModal = ({ open, employee, selectedYear, onClose, onSuccess }: Emp
               required
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="sisa_cuti">Sisa Cuti (hari)</Label>
-            <Input
-              id="sisa_cuti"
-              type="number"
-              min="0"
-              value={formData.sisa_cuti}
-              onChange={(e) => setFormData({ ...formData, sisa_cuti: parseInt(e.target.value) || 0 })}
-              required
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="sisa_cuti_tahun_lalu">Sisa Cuti {currentYear - 1}</Label>
+              <Input
+                id="sisa_cuti_tahun_lalu"
+                type="number"
+                min="0"
+                value={formData.sisa_cuti_tahun_lalu}
+                onChange={(e) => setFormData({ ...formData, sisa_cuti_tahun_lalu: parseInt(e.target.value) || 0 })}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="sisa_cuti_tahun_ini">Sisa Cuti {currentYear}</Label>
+              <Input
+                id="sisa_cuti_tahun_ini"
+                type="number"
+                min="0"
+                value={formData.sisa_cuti_tahun_ini}
+                onChange={(e) => setFormData({ ...formData, sisa_cuti_tahun_ini: parseInt(e.target.value) || 0 })}
+                required
+              />
+            </div>
           </div>
           <div className="flex gap-2 justify-end pt-4">
             <Button type="button" variant="outline" onClick={onClose}>
