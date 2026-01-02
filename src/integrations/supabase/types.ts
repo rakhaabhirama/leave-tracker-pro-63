@@ -21,9 +21,9 @@ export type Database = {
           id: string
           nama: string
           nip: string
-          sisa_cuti: number
+          sisa_cuti_tahun_ini: number
+          sisa_cuti_tahun_lalu: number
           updated_at: string
-          year: number
         }
         Insert: {
           created_at?: string
@@ -31,9 +31,9 @@ export type Database = {
           id?: string
           nama: string
           nip: string
-          sisa_cuti?: number
+          sisa_cuti_tahun_ini?: number
+          sisa_cuti_tahun_lalu?: number
           updated_at?: string
-          year?: number
         }
         Update: {
           created_at?: string
@@ -41,9 +41,9 @@ export type Database = {
           id?: string
           nama?: string
           nip?: string
-          sisa_cuti?: number
+          sisa_cuti_tahun_ini?: number
+          sisa_cuti_tahun_lalu?: number
           updated_at?: string
-          year?: number
         }
         Relationships: []
       }
@@ -57,6 +57,8 @@ export type Database = {
           jumlah: number
           keterangan: string
           tanggal: string
+          tanggal_mulai: string | null
+          tanggal_selesai: string | null
         }
         Insert: {
           admin_id: string
@@ -67,6 +69,8 @@ export type Database = {
           jumlah: number
           keterangan: string
           tanggal?: string
+          tanggal_mulai?: string | null
+          tanggal_selesai?: string | null
         }
         Update: {
           admin_id?: string
@@ -77,6 +81,8 @@ export type Database = {
           jumlah?: number
           keterangan?: string
           tanggal?: string
+          tanggal_mulai?: string | null
+          tanggal_selesai?: string | null
         }
         Relationships: [
           {
@@ -87,6 +93,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      leave_year_settings: {
+        Row: {
+          created_at: string
+          current_year: number
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_year?: number
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_year?: number
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
@@ -106,24 +133,6 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
-        }
-        Relationships: []
-      }
-      years: {
-        Row: {
-          created_at: string
-          id: string
-          year: number
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          year: number
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          year?: number
         }
         Relationships: []
       }

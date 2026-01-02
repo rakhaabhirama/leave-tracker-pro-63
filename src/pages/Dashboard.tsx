@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Employee, LeaveHistory, Year } from '@/types/employee';
+import { Employee, LeaveHistory, LeaveYearSettings } from '@/types/employee';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,12 +12,12 @@ import { useToast } from '@/hooks/use-toast';
 import {
   Users, LogOut, Plus, Search,
   Edit, Trash2, History, FileDown, Loader2, CalendarPlus, CalendarMinus,
-  UserCheck, UserX
+  UserCheck, UserX, AlertTriangle
 } from 'lucide-react';
 import EmployeeModal from '@/components/EmployeeModal';
 import LeaveModal from '@/components/LeaveModal';
 import HistoryModal from '@/components/HistoryModal';
-import YearSelector from '@/components/YearSelector';
+import YearManager from '@/components/YearManager';
 import { exportToExcel } from '@/lib/export';
 import ImigrasiLogo from '@/components/ImigrasiLogo';
 import { Badge } from '@/components/ui/badge';
@@ -28,22 +28,22 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [years, setYears] = useState<Year[]>([]);
-  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const [yearSettings, setYearSettings] = useState<LeaveYearSettings | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [leaveStatusFilter, setLeaveStatusFilter] = useState('all');
   const [isLoading, setIsLoading] = useState(true);
 
-  // Track employees who are currently on leave
+  // Track employees who are currently on leave (based on date range)
   const [onLeaveEmployeeIds, setOnLeaveEmployeeIds] = useState<Set<string>>(new Set());
-  const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
 
   // Modals
   const [employeeModal, setEmployeeModal] = useState<{ open: boolean; employee?: Employee }>({ open: false });
   const [leaveModal, setLeaveModal] = useState<{ open: boolean; employee?: Employee; type?: 'tambah' | 'kurang' }>({ open: false });
   const [historyModal, setHistoryModal] = useState<{ open: boolean; employee?: Employee; history: LeaveHistory[] }>({ open: false, history: [] });
+
+  const currentYear = yearSettings?.current_year || new Date().getFullYear();
 
   useEffect(() => {
     if (!loading) {
@@ -63,16 +63,42 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (isAdmin) {
-      fetchYears();
+      fetchYearSettings();
+      fetchEmployees();
     }
   }, [isAdmin]);
 
+  // Real-time subscription for leave status
   useEffect(() => {
-    if (selectedYear) {
-      fetchEmployees();
+    const channel = supabase
+      .channel('leave-status-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'leave_history'
+        },
+        () => {
+          fetchOnLeaveStatus();
+          fetchEmployees();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  // Check leave status periodically (every minute) for auto-update
+  useEffect(() => {
+    const interval = setInterval(() => {
       fetchOnLeaveStatus();
-    }
-  }, [selectedYear]);
+    }, 60000); // Check every minute
+
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     let filtered = employees;
@@ -88,39 +114,39 @@ const Dashboard = () => {
       filtered = filtered.filter(emp => onLeaveEmployeeIds.has(emp.id));
     } else if (leaveStatusFilter === 'tidak_cuti') {
       filtered = filtered.filter(emp => !onLeaveEmployeeIds.has(emp.id));
+    } else if (leaveStatusFilter === 'hampir_habis') {
+      // Cuti hampir habis: total < 3 hari
+      filtered = filtered.filter(emp => 
+        (emp.sisa_cuti_tahun_lalu + emp.sisa_cuti_tahun_ini) < 3
+      );
     }
     
     setFilteredEmployees(filtered);
   }, [employees, searchQuery, leaveStatusFilter, onLeaveEmployeeIds]);
 
-  const fetchYears = async () => {
+  const fetchYearSettings = async () => {
     const { data, error } = await supabase
-      .from('years')
+      .from('leave_year_settings')
       .select('*')
-      .order('year', { ascending: false });
+      .limit(1)
+      .maybeSingle();
 
     if (error) {
       toast({
         title: "Error",
-        description: error.message || "Gagal mengambil data tahun",
+        description: error.message || "Gagal mengambil pengaturan tahun",
         variant: "destructive"
       });
-    } else {
-      setYears(data || []);
-      if (data && data.length > 0 && !selectedYear) {
-        setSelectedYear(data[0].year);
-      }
+    } else if (data) {
+      setYearSettings(data as LeaveYearSettings);
     }
   };
 
   const fetchEmployees = async () => {
-    if (!selectedYear) return;
-    
     setIsLoading(true);
     const { data, error } = await supabase
       .from('employees')
       .select('*')
-      .eq('year', selectedYear)
       .order('nama');
 
     if (error) {
@@ -130,78 +156,26 @@ const Dashboard = () => {
         variant: "destructive"
       });
     } else {
-      setEmployees(data || []);
+      setEmployees((data || []) as Employee[]);
     }
     setIsLoading(false);
+    fetchOnLeaveStatus();
   };
 
   const fetchOnLeaveStatus = async () => {
-    // Ambil semua perubahan cuti HARI INI, lalu tentukan status berdasarkan entri TERAKHIR per pegawai.
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
-    const end = new Date();
-    end.setHours(23, 59, 59, 999);
+    const today = new Date().toISOString().split('T')[0];
 
+    // Get all leave records where today is between tanggal_mulai and tanggal_selesai
     const { data, error } = await supabase
       .from('leave_history')
-      .select('employee_id, jenis, tanggal')
-      .gte('tanggal', start.toISOString())
-      .lte('tanggal', end.toISOString())
-      .order('tanggal', { ascending: false });
+      .select('employee_id, tanggal_mulai, tanggal_selesai')
+      .lte('tanggal_mulai', today)
+      .gte('tanggal_selesai', today);
 
     if (error || !data) return;
 
-    const latestJenisByEmployee = new Map<string, string>();
-    for (const item of data) {
-      if (!latestJenisByEmployee.has(item.employee_id)) {
-        latestJenisByEmployee.set(item.employee_id, item.jenis);
-      }
-    }
-
-    const onLeaveIds = new Set(
-      Array.from(latestJenisByEmployee.entries())
-        .filter(([, jenis]) => jenis === 'kurang')
-        .map(([employeeId]) => employeeId)
-    );
-
+    const onLeaveIds = new Set(data.map(item => item.employee_id));
     setOnLeaveEmployeeIds(onLeaveIds);
-  };
-
-  const handleToggleLeaveStatus = async (employee: Employee) => {
-    if (!user) return;
-
-    const isOnLeave = onLeaveEmployeeIds.has(employee.id);
-    const nextJenis: 'tambah' | 'kurang' = isOnLeave ? 'tambah' : 'kurang';
-    const nextLabel = isOnLeave ? 'Aktif' : 'Sedang Cuti';
-
-    setStatusUpdatingId(employee.id);
-    try {
-      const { error } = await supabase.from('leave_history').insert({
-        employee_id: employee.id,
-        admin_id: user.id,
-        jenis: nextJenis,
-        jumlah: 1, // minimal 1 untuk memenuhi constraint
-        keterangan: `Ubah status menjadi ${nextLabel}`,
-      });
-
-      if (error) {
-        toast({
-          title: 'Error',
-          description: error.message || 'Gagal mengubah status',
-          variant: 'destructive',
-        });
-        return;
-      }
-
-      toast({
-        title: 'Berhasil',
-        description: `Status ${employee.nama} sekarang: ${nextLabel}`,
-      });
-
-      await fetchOnLeaveStatus();
-    } finally {
-      setStatusUpdatingId(null);
-    }
   };
 
   const handleDeleteEmployee = async (id: string) => {
@@ -250,11 +224,12 @@ const Dashboard = () => {
       No: index + 1,
       NIP: emp.nip,
       Nama: emp.nama,
-      Tahun: emp.year,
       Status: onLeaveEmployeeIds.has(emp.id) ? 'Sedang Cuti' : 'Aktif',
-      'Sisa Cuti': emp.sisa_cuti,
+      [`Sisa Cuti ${currentYear - 1}`]: emp.sisa_cuti_tahun_lalu,
+      [`Sisa Cuti ${currentYear}`]: emp.sisa_cuti_tahun_ini,
+      'Total Sisa Cuti': emp.sisa_cuti_tahun_lalu + emp.sisa_cuti_tahun_ini,
     }));
-    exportToExcel(exportData, `data-pegawai-${selectedYear}`);
+    exportToExcel(exportData, `data-pegawai-${currentYear}`);
     toast({
       title: "Berhasil",
       description: "Data pegawai berhasil diekspor"
@@ -266,7 +241,7 @@ const Dashboard = () => {
       .from('leave_history')
       .select(`
         *,
-        employees(nama, nip, year)
+        employees(nama, nip)
       `)
       .order('tanggal', { ascending: false });
 
@@ -280,9 +255,10 @@ const Dashboard = () => {
       const exportData = (data || []).map((item: any) => ({
         Nama: item.employees?.nama || '-',
         NIP: item.employees?.nip || '-',
-        Tahun: item.employees?.year || '-',
-        Tanggal: new Date(item.tanggal).toLocaleDateString('id-ID'),
-        Jenis: item.jenis === 'tambah' ? 'Penambahan' : 'Pengurangan',
+        'Tanggal Pengajuan': new Date(item.tanggal).toLocaleDateString('id-ID'),
+        'Tanggal Mulai': item.tanggal_mulai ? new Date(item.tanggal_mulai).toLocaleDateString('id-ID') : '-',
+        'Tanggal Selesai': item.tanggal_selesai ? new Date(item.tanggal_selesai).toLocaleDateString('id-ID') : '-',
+        Jenis: item.jenis === 'tambah' ? 'Penambahan' : 'Pengambilan',
         Jumlah: item.jumlah,
         Keterangan: item.keterangan
       }));
@@ -301,7 +277,7 @@ const Dashboard = () => {
 
   const totalEmployees = employees.length;
   const onLeaveCount = onLeaveEmployeeIds.size;
-  const lowLeaveCount = employees.filter(e => e.sisa_cuti <= 3).length;
+  const lowLeaveCount = employees.filter(e => (e.sisa_cuti_tahun_lalu + e.sisa_cuti_tahun_ini) < 3).length;
 
   if (loading) {
     return (
@@ -349,13 +325,14 @@ const Dashboard = () => {
       </header>
 
       <main className="container mx-auto px-4 py-6 space-y-6">
-        {/* Year Selector */}
+        {/* Year Manager */}
         <div className="flex items-center justify-between">
-          <YearSelector
-            years={years}
-            selectedYear={selectedYear}
-            onYearChange={setSelectedYear}
-            onYearAdded={fetchYears}
+          <YearManager
+            settings={yearSettings}
+            onYearChanged={() => {
+              fetchYearSettings();
+              fetchEmployees();
+            }}
           />
         </div>
 
@@ -363,7 +340,7 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Pegawai {selectedYear}</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Pegawai</CardTitle>
               <Users className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
@@ -377,17 +354,17 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-warning">{onLeaveCount}</div>
-              <p className="text-xs text-muted-foreground">Pegawai sedang cuti hari ini</p>
+              <p className="text-xs text-muted-foreground">Berdasarkan periode cuti</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Cuti Hampir Habis</CardTitle>
-              <CalendarMinus className="h-4 w-4 text-destructive" />
+              <AlertTriangle className="h-4 w-4 text-destructive" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-destructive">{lowLeaveCount}</div>
-              <p className="text-xs text-muted-foreground">Sisa cuti ≤ 3 hari</p>
+              <p className="text-xs text-muted-foreground">Total sisa cuti &lt; 3 hari</p>
             </CardContent>
           </Card>
         </div>
@@ -406,12 +383,13 @@ const Dashboard = () => {
             </div>
             <Select value={leaveStatusFilter} onValueChange={setLeaveStatusFilter}>
               <SelectTrigger className="w-full sm:w-48">
-                <SelectValue placeholder="Filter Status Cuti" />
+                <SelectValue placeholder="Filter Status" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Semua Status</SelectItem>
                 <SelectItem value="cuti">Sedang Cuti</SelectItem>
                 <SelectItem value="tidak_cuti">Tidak Cuti</SelectItem>
+                <SelectItem value="hampir_habis">Cuti Hampir Habis</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -419,12 +397,11 @@ const Dashboard = () => {
             <Button 
               onClick={() => setEmployeeModal({ open: true })} 
               className="flex-1 sm:flex-none"
-              disabled={!selectedYear}
             >
               <Plus className="h-4 w-4 mr-2" />
               Tambah Pegawai
             </Button>
-            <Button variant="outline" onClick={handleExportEmployees} disabled={!selectedYear}>
+            <Button variant="outline" onClick={handleExportEmployees}>
               <FileDown className="h-4 w-4 mr-2" />
               Ekspor
             </Button>
@@ -438,17 +415,13 @@ const Dashboard = () => {
         {/* Table */}
         <Card>
           <CardContent className="p-0">
-            {!selectedYear ? (
-              <div className="text-center py-12 text-muted-foreground">
-                Pilih tahun untuk melihat data pegawai
-              </div>
-            ) : isLoading ? (
+            {isLoading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
             ) : filteredEmployees.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
-                {employees.length === 0 ? `Belum ada data pegawai untuk tahun ${selectedYear}` : 'Tidak ada hasil pencarian'}
+                {employees.length === 0 ? 'Belum ada data pegawai' : 'Tidak ada hasil pencarian'}
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -459,54 +432,51 @@ const Dashboard = () => {
                       <TableHead>NIP</TableHead>
                       <TableHead>Nama</TableHead>
                       <TableHead className="text-center">Status</TableHead>
-                      <TableHead className="text-center">Sisa Cuti</TableHead>
+                      <TableHead className="text-center">Cuti {currentYear - 1}</TableHead>
+                      <TableHead className="text-center">Cuti {currentYear}</TableHead>
+                      <TableHead className="text-center">Total</TableHead>
                       <TableHead className="text-right">Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredEmployees.map((employee, index) => {
                       const isOnLeave = onLeaveEmployeeIds.has(employee.id);
+                      const totalCuti = employee.sisa_cuti_tahun_lalu + employee.sisa_cuti_tahun_ini;
+                      const isLowLeave = totalCuti < 3;
                       return (
                         <TableRow key={employee.id}>
                           <TableCell className="text-center font-medium">{index + 1}</TableCell>
                           <TableCell className="font-mono">{employee.nip}</TableCell>
                           <TableCell className="font-medium">{employee.nama}</TableCell>
                           <TableCell className="text-center">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 px-2"
-                              disabled={statusUpdatingId === employee.id}
-                              onClick={() => handleToggleLeaveStatus(employee)}
-                              title="Klik untuk ubah status"
-                            >
-                              {isOnLeave ? (
-                                <Badge variant="destructive" className="gap-1">
-                                  <UserX className="h-3 w-3" />
-                                  Cuti
-                                </Badge>
-                              ) : (
-                                <Badge variant="secondary" className="gap-1 bg-success/10 text-success hover:bg-success/20">
-                                  <UserCheck className="h-3 w-3" />
-                                  Aktif
-                                </Badge>
-                              )}
-                            </Button>
+                            {isOnLeave ? (
+                              <Badge variant="destructive" className="gap-1">
+                                <UserX className="h-3 w-3" />
+                                Cuti
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary" className="gap-1">
+                                <UserCheck className="h-3 w-3" />
+                                Aktif
+                              </Badge>
+                            )}
                           </TableCell>
                           <TableCell className="text-center">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              employee.sisa_cuti <= 3 
-                                ? 'bg-destructive/10 text-destructive' 
-                                : employee.sisa_cuti <= 6 
-                                  ? 'bg-warning/10 text-warning' 
-                                  : 'bg-success/10 text-success'
-                            }`}>
-                              {employee.sisa_cuti} hari
+                            <span className={employee.sisa_cuti_tahun_lalu === 0 ? 'text-muted-foreground' : ''}>
+                              {employee.sisa_cuti_tahun_lalu} hari
                             </span>
                           </TableCell>
-                          <TableCell>
-                            <div className="flex items-center justify-end gap-1">
+                          <TableCell className="text-center">
+                            {employee.sisa_cuti_tahun_ini} hari
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <span className={`font-semibold ${isLowLeave ? 'text-destructive' : ''}`}>
+                              {totalCuti} hari
+                              {isLowLeave && <AlertTriangle className="inline h-3 w-3 ml-1" />}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-1">
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -519,7 +489,7 @@ const Dashboard = () => {
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => setLeaveModal({ open: true, employee, type: 'kurang' })}
-                                title="Kurangi Cuti"
+                                title="Ambil Cuti"
                               >
                                 <CalendarMinus className="h-4 w-4 text-destructive" />
                               </Button>
@@ -535,7 +505,7 @@ const Dashboard = () => {
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => setEmployeeModal({ open: true, employee })}
-                                title="Edit"
+                                title="Edit Pegawai"
                               >
                                 <Edit className="h-4 w-4" />
                               </Button>
@@ -543,7 +513,7 @@ const Dashboard = () => {
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => handleDeleteEmployee(employee.id)}
-                                title="Hapus"
+                                title="Hapus Pegawai"
                               >
                                 <Trash2 className="h-4 w-4 text-destructive" />
                               </Button>
@@ -564,7 +534,7 @@ const Dashboard = () => {
       <EmployeeModal
         open={employeeModal.open}
         employee={employeeModal.employee}
-        selectedYear={selectedYear || new Date().getFullYear()}
+        currentYear={currentYear}
         onClose={() => setEmployeeModal({ open: false })}
         onSuccess={fetchEmployees}
       />
@@ -572,6 +542,7 @@ const Dashboard = () => {
         open={leaveModal.open}
         employee={leaveModal.employee}
         type={leaveModal.type}
+        currentYear={currentYear}
         onClose={() => setLeaveModal({ open: false })}
         onSuccess={handleLeaveSuccess}
       />

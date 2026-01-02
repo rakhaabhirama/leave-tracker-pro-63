@@ -3,6 +3,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { CalendarPlus, CalendarMinus, History } from 'lucide-react';
+import { format } from 'date-fns';
+import { id as localeId } from 'date-fns/locale';
 
 interface HistoryModalProps {
   open: boolean;
@@ -11,10 +13,15 @@ interface HistoryModalProps {
   onClose: () => void;
 }
 
+const formatDate = (dateStr: string | null) => {
+  if (!dateStr) return '-';
+  return format(new Date(dateStr), 'd-M-yyyy', { locale: localeId });
+};
+
 const HistoryModal = ({ open, employee, history, onClose }: HistoryModalProps) => {
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <History className="h-5 w-5" />
@@ -35,7 +42,8 @@ const HistoryModal = ({ open, employee, history, onClose }: HistoryModalProps) =
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Tanggal</TableHead>
+                  <TableHead>Tanggal Pengajuan</TableHead>
+                  <TableHead>Periode Cuti</TableHead>
                   <TableHead>Jenis</TableHead>
                   <TableHead className="text-center">Jumlah</TableHead>
                   <TableHead>Keterangan</TableHead>
@@ -44,12 +52,17 @@ const HistoryModal = ({ open, employee, history, onClose }: HistoryModalProps) =
               <TableBody>
                 {history.map((item) => (
                   <TableRow key={item.id}>
-                    <TableCell>
-                      {new Date(item.tanggal).toLocaleDateString('id-ID', {
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric'
-                      })}
+                    <TableCell className="whitespace-nowrap">
+                      {format(new Date(item.tanggal), 'd MMMM yyyy', { locale: localeId })}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {item.tanggal_mulai && item.tanggal_selesai ? (
+                        <span className="text-sm">
+                          {formatDate(item.tanggal_mulai)} s/d {formatDate(item.tanggal_selesai)}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
@@ -65,7 +78,7 @@ const HistoryModal = ({ open, employee, history, onClose }: HistoryModalProps) =
                         ) : (
                           <>
                             <CalendarMinus className="h-3 w-3" />
-                            Pengurangan
+                            Pengambilan
                           </>
                         )}
                       </span>
