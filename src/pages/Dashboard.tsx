@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Employee, LeaveHistory, LeaveYearSettings } from '@/types/employee';
+import { Employee, LeaveHistory, LeaveYearSettings, sortEmployeesByJabatan } from '@/types/employee';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -146,8 +146,7 @@ const Dashboard = () => {
     setIsLoading(true);
     const { data, error } = await supabase
       .from('employees')
-      .select('*')
-      .order('nama');
+      .select('*');
 
     if (error) {
       toast({
@@ -156,7 +155,9 @@ const Dashboard = () => {
         variant: "destructive"
       });
     } else {
-      setEmployees((data || []) as Employee[]);
+      // Sort by jabatan hierarchy then by name
+      const sortedEmployees = sortEmployeesByJabatan((data || []) as Employee[]);
+      setEmployees(sortedEmployees);
     }
     setIsLoading(false);
     fetchOnLeaveStatus();
@@ -224,6 +225,7 @@ const Dashboard = () => {
       No: index + 1,
       NIP: emp.nip,
       Nama: emp.nama,
+      Jabatan: emp.jabatan,
       Status: onLeaveEmployeeIds.has(emp.id) ? 'Sedang Cuti' : 'Aktif',
       [`Sisa Cuti ${currentYear - 1}`]: emp.sisa_cuti_tahun_lalu,
       [`Sisa Cuti ${currentYear}`]: emp.sisa_cuti_tahun_ini,
@@ -431,6 +433,7 @@ const Dashboard = () => {
                       <TableHead className="w-16 text-center">No</TableHead>
                       <TableHead>NIP</TableHead>
                       <TableHead>Nama</TableHead>
+                      <TableHead>Jabatan</TableHead>
                       <TableHead className="text-center">Status</TableHead>
                       <TableHead className="text-center">Cuti {currentYear - 1}</TableHead>
                       <TableHead className="text-center">Cuti {currentYear}</TableHead>
@@ -448,6 +451,9 @@ const Dashboard = () => {
                           <TableCell className="text-center font-medium">{index + 1}</TableCell>
                           <TableCell className="font-mono">{employee.nip}</TableCell>
                           <TableCell className="font-medium">{employee.nama}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{employee.jabatan}</Badge>
+                          </TableCell>
                           <TableCell className="text-center">
                             {isOnLeave ? (
                               <Badge variant="destructive" className="gap-1">

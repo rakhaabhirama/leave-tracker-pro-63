@@ -19,6 +19,7 @@ export type Database = {
           created_at: string
           departemen: string
           id: string
+          jabatan: string
           nama: string
           nip: string
           sisa_cuti_tahun_ini: number
@@ -29,6 +30,7 @@ export type Database = {
           created_at?: string
           departemen: string
           id?: string
+          jabatan?: string
           nama: string
           nip: string
           sisa_cuti_tahun_ini?: number
@@ -39,6 +41,7 @@ export type Database = {
           created_at?: string
           departemen?: string
           id?: string
+          jabatan?: string
           nama?: string
           nip?: string
           sisa_cuti_tahun_ini?: number

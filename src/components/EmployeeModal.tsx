@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Employee } from '@/types/employee';
+import { Employee, JABATAN_OPTIONS, Jabatan } from '@/types/employee';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { z } from 'zod';
@@ -20,6 +21,7 @@ interface EmployeeModalProps {
 const employeeSchema = z.object({
   nip: z.string().trim().min(1, "NIP wajib diisi").max(50, "NIP maksimal 50 karakter"),
   nama: z.string().trim().min(1, "Nama wajib diisi").max(255, "Nama maksimal 255 karakter"),
+  jabatan: z.enum(JABATAN_OPTIONS, { required_error: "Jabatan wajib dipilih" }),
   sisa_cuti_tahun_lalu: z.number().min(0, "Sisa cuti tidak boleh negatif"),
   sisa_cuti_tahun_ini: z.number().min(0, "Sisa cuti tidak boleh negatif")
 });
@@ -28,6 +30,7 @@ const EmployeeModal = ({ open, employee, currentYear, onClose, onSuccess }: Empl
   const [formData, setFormData] = useState({
     nip: '',
     nama: '',
+    jabatan: 'JFU' as Jabatan,
     sisa_cuti_tahun_lalu: 0,
     sisa_cuti_tahun_ini: 12
   });
@@ -39,6 +42,7 @@ const EmployeeModal = ({ open, employee, currentYear, onClose, onSuccess }: Empl
       setFormData({
         nip: employee.nip,
         nama: employee.nama,
+        jabatan: employee.jabatan,
         sisa_cuti_tahun_lalu: employee.sisa_cuti_tahun_lalu,
         sisa_cuti_tahun_ini: employee.sisa_cuti_tahun_ini
       });
@@ -46,6 +50,7 @@ const EmployeeModal = ({ open, employee, currentYear, onClose, onSuccess }: Empl
       setFormData({
         nip: '',
         nama: '',
+        jabatan: 'JFU',
         sisa_cuti_tahun_lalu: 0,
         sisa_cuti_tahun_ini: 12
       });
@@ -144,6 +149,24 @@ const EmployeeModal = ({ open, employee, currentYear, onClose, onSuccess }: Empl
               placeholder="Masukkan nama lengkap"
               required
             />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="jabatan">Jabatan</Label>
+            <Select 
+              value={formData.jabatan} 
+              onValueChange={(value: Jabatan) => setFormData({ ...formData, jabatan: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Pilih jabatan" />
+              </SelectTrigger>
+              <SelectContent>
+                {JABATAN_OPTIONS.map((jabatan) => (
+                  <SelectItem key={jabatan} value={jabatan}>
+                    {jabatan}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
