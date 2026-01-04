@@ -433,7 +433,6 @@ const Dashboard = () => {
                       <TableHead className="w-16 text-center">No</TableHead>
                       <TableHead>NIP</TableHead>
                       <TableHead>Nama</TableHead>
-                      <TableHead>Jabatan</TableHead>
                       <TableHead className="text-center">Status</TableHead>
                       <TableHead className="text-center">Cuti {currentYear - 1}</TableHead>
                       <TableHead className="text-center">Cuti {currentYear}</TableHead>
@@ -451,9 +450,6 @@ const Dashboard = () => {
                           <TableCell className="text-center font-medium">{index + 1}</TableCell>
                           <TableCell className="font-mono">{employee.nip}</TableCell>
                           <TableCell className="font-medium">{employee.nama}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{employee.jabatan}</Badge>
-                          </TableCell>
                           <TableCell className="text-center">
                             {isOnLeave ? (
                               <Badge variant="destructive" className="gap-1">
