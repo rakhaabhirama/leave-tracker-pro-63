@@ -54,6 +54,12 @@ export interface LeaveHistory {
 export interface LeaveYearSettings {
   id: string;
   current_year: number;
+  previous_year: number | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface EmployeeWithBackup extends Employee {
+  sisa_cuti_tahun_sebelumnya: number;
+  sisa_cuti_tahun_depan: number | null;
 }
