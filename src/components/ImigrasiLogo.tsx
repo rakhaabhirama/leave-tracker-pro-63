@@ -17,13 +17,13 @@ const ImigrasiLogo: React.FC<ImigrasiLogoProps> = ({ className = '', size = 'md'
   return (
     <div className={`flex items-center gap-3 ${className}`}>
       <img 
-        src={logoImigrasi} 
-        alt="Logo Direktorat Jenderal Imigrasi"
+        src={logoKemenkumham} 
+        alt="Logo Kementerian Imigrasi dan Pemasyarakatan RI"
         className={`${sizeClasses[size]} object-contain`}
       />
       <img 
-        src={logoKemenkumham} 
-        alt="Logo Kementerian Imigrasi dan Pemasyarakatan RI"
+        src={logoImigrasi} 
+        alt="Logo Direktorat Jenderal Imigrasi"
         className={`${sizeClasses[size]} object-contain`}
       />
     </div>
