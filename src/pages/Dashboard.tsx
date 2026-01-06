@@ -307,7 +307,7 @@ const Dashboard = () => {
             <ImigrasiLogo size="sm" />
             <div>
               <h1 className="text-xl font-bold text-foreground">Manajemen Cuti</h1>
-              <p className="text-xs text-muted-foreground">Kementerian Imigrasi dan Pemasyarakatan RI</p>
+              <p className="text-xs text-muted-foreground">Kantor Imigrasi Kelas I TPI Palembang</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
