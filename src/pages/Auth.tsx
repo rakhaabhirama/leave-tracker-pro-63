@@ -105,7 +105,7 @@ const Auth = () => {
           <div>
             <CardTitle className="text-2xl font-bold">Sistem Manajemen Cuti</CardTitle>
             <CardDescription className="mt-2">
-              Kementerian Imigrasi dan Pemasyarakatan RI
+              Kantor Imigrasi Kelas I TPI Palembang
             </CardDescription>
           </div>
         </CardHeader>

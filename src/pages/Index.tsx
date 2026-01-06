@@ -36,7 +36,7 @@ const Index = () => {
             Sistem Manajemen Cuti
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-2">
-            Kementerian Imigrasi dan Pemasyarakatan Republik Indonesia
+            Kantor Imigrasi Kelas I TPI Palembang
           </p>
           <p className="text-muted-foreground max-w-xl mx-auto">
             Kelola cuti pegawai dengan mudah, efisien, dan terorganisir
