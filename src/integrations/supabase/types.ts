@@ -22,8 +22,10 @@ export type Database = {
           jabatan: string
           nama: string
           nip: string
+          sisa_cuti_tahun_depan: number | null
           sisa_cuti_tahun_ini: number
           sisa_cuti_tahun_lalu: number
+          sisa_cuti_tahun_sebelumnya: number | null
           updated_at: string
         }
         Insert: {
@@ -33,8 +35,10 @@ export type Database = {
           jabatan?: string
           nama: string
           nip: string
+          sisa_cuti_tahun_depan?: number | null
           sisa_cuti_tahun_ini?: number
           sisa_cuti_tahun_lalu?: number
+          sisa_cuti_tahun_sebelumnya?: number | null
           updated_at?: string
         }
         Update: {
@@ -44,8 +48,10 @@ export type Database = {
           jabatan?: string
           nama?: string
           nip?: string
+          sisa_cuti_tahun_depan?: number | null
           sisa_cuti_tahun_ini?: number
           sisa_cuti_tahun_lalu?: number
+          sisa_cuti_tahun_sebelumnya?: number | null
           updated_at?: string
         }
         Relationships: []
@@ -102,18 +108,21 @@ export type Database = {
           created_at: string
           current_year: number
           id: string
+          previous_year: number | null
           updated_at: string
         }
         Insert: {
           created_at?: string
           current_year?: number
           id?: string
+          previous_year?: number | null
           updated_at?: string
         }
         Update: {
           created_at?: string
           current_year?: number
           id?: string
+          previous_year?: number | null
           updated_at?: string
         }
         Relationships: []
