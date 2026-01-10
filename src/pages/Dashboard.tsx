@@ -302,26 +302,32 @@ const Dashboard = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-card border-b border-border sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <ImigrasiLogo size="sm" />
-            <div>
-              <h1 className="text-xl font-bold text-foreground">Manajemen Cuti</h1>
-              <p className="text-xs text-muted-foreground">Kantor Imigrasi Kelas I TPI Palembang</p>
+        <div className="container mx-auto px-4 py-3 md:py-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 md:gap-3 min-w-0">
+              <div className="flex-shrink-0">
+                <ImigrasiLogo size="sm" />
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-base md:text-xl font-bold text-foreground truncate">Manajemen Cuti</h1>
+                <p className="text-[10px] md:text-xs text-muted-foreground truncate">Kantor Imigrasi Kelas I TPI Palembang</p>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <Button
-              variant="outline"
-              onClick={async () => {
-                await signOut();
-                navigate('/auth');
-              }}
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Keluar
-            </Button>
+            <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
+              <ThemeToggle />
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs md:text-sm"
+                onClick={async () => {
+                  await signOut();
+                  navigate('/auth');
+                }}
+              >
+                <LogOut className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+                <span className="hidden sm:inline">Keluar</span>
+              </Button>
+            </div>
           </div>
         </div>
       </header>
