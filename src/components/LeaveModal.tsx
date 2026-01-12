@@ -148,11 +148,8 @@ const LeaveModal = ({ open, employee, type = 'kurang', currentYear, onClose, onS
 
       if (updateError) throw updateError;
 
-      // Format keterangan dengan tanggal
-      let formattedKeterangan = keterangan;
-      if (type === 'kurang') {
-        formattedKeterangan = `${formatDateIndonesia(tanggalMulai)} s/d ${formatDateIndonesia(tanggalSelesai)} - ${keterangan}`;
-      }
+      // Keterangan tanpa tanggal (tanggal sudah ada di kolom periode)
+      const formattedKeterangan = keterangan;
 
       // Catat riwayat
       const historyData: any = {

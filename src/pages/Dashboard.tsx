@@ -309,7 +309,7 @@ const Dashboard = () => {
                 <ImigrasiLogo size="sm" />
               </div>
               <div className="min-w-0">
-                <h1 className="text-base md:text-xl font-bold text-foreground truncate">Manajemen Cuti</h1>
+                <h1 className="text-base md:text-xl font-bold truncate font-baskerville text-golden">MACAN</h1>
                 <p className="text-[10px] md:text-xs text-muted-foreground truncate">Kantor Imigrasi Kelas I TPI Palembang</p>
               </div>
             </div>
