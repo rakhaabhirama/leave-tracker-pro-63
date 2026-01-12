@@ -32,13 +32,16 @@ const Index = () => {
           <div className="inline-flex items-center justify-center mb-6">
             <ImigrasiLogo size="lg" />
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
-            Sistem Manajemen Cuti
+          <h1 className="text-4xl md:text-5xl font-bold mb-2 font-baskerville text-golden">
+            MACAN
           </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-2">
+          <p className="text-lg font-medium text-foreground max-w-2xl mx-auto mb-2">
+            Manajemen Sistem Cuti Keimigrasian
+          </p>
+          <p className="text-muted-foreground max-w-2xl mx-auto mb-2">
             Kantor Imigrasi Kelas I TPI Palembang
           </p>
-          <p className="text-muted-foreground max-w-xl mx-auto">
+          <p className="text-sm text-muted-foreground max-w-xl mx-auto">
             Kelola cuti pegawai dengan mudah, efisien, dan terorganisir
           </p>
         </div>

@@ -42,6 +42,9 @@ All colors MUST be HSL.
     --warning: 38 92% 50%;
     --warning-foreground: 222 47% 11%;
 
+    --golden: 45 93% 47%;
+    --golden-foreground: 222 47% 11%;
+
     --radius: 0.5rem;
 
     --sidebar-background: 0 0% 98%;
@@ -88,6 +91,9 @@ All colors MUST be HSL.
 
     --warning: 38 92% 50%;
     --warning-foreground: 222 47% 11%;
+
+    --golden: 45 93% 58%;
+    --golden-foreground: 210 40% 98%;
 
     --sidebar-background: 222 47% 11%;
     --sidebar-foreground: 210 40% 98%;
