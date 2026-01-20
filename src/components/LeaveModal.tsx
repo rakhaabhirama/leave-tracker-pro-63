@@ -31,7 +31,8 @@ const leaveSchema = z.object({
 
 const addLeaveSchema = z.object({
   jumlah: z.number().min(1, "Jumlah minimal 1 hari"),
-  keterangan: z.string().trim().min(1, "Keterangan wajib diisi").max(500, "Keterangan maksimal 500 karakter")
+  keterangan: z.string().trim().min(1, "Keterangan wajib diisi").max(500, "Keterangan maksimal 500 karakter"),
+  tanggal_penambahan: z.string().min(1, "Tanggal penambahan wajib diisi")
 });
 
 const formatDateIndonesia = (dateStr: string) => {
@@ -45,6 +46,7 @@ const LeaveModal = ({ open, employee, type = 'kurang', currentYear, onClose, onS
   const [keterangan, setKeterangan] = useState('');
   const [tanggalMulai, setTanggalMulai] = useState(today);
   const [tanggalSelesai, setTanggalSelesai] = useState(today);
+  const [tanggalPenambahan, setTanggalPenambahan] = useState(today);
   const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -74,7 +76,7 @@ const LeaveModal = ({ open, employee, type = 'kurang', currentYear, onClose, onS
     const isTambah = type === 'tambah';
 
     if (isTambah) {
-      const validation = addLeaveSchema.safeParse({ jumlah, keterangan });
+      const validation = addLeaveSchema.safeParse({ jumlah, keterangan, tanggal_penambahan: tanggalPenambahan });
       if (!validation.success) {
         toast({
           title: "Error",
@@ -124,8 +126,19 @@ const LeaveModal = ({ open, employee, type = 'kurang', currentYear, onClose, onS
       let newSisaTahunIni = employee.sisa_cuti_tahun_ini;
 
       if (type === 'tambah') {
-        // Tambah ke tahun ini
-        newSisaTahunIni += jumlah;
+        // Tambah ke kolom tahun yang kurang dari 12
+        // Prioritas: tahun lalu dulu (jika < 12), baru tahun ini
+        if (newSisaTahunLalu < 12) {
+          const canAddToLastYear = 12 - newSisaTahunLalu;
+          const addToLastYear = Math.min(jumlah, canAddToLastYear);
+          newSisaTahunLalu += addToLastYear;
+          const remaining = jumlah - addToLastYear;
+          if (remaining > 0) {
+            newSisaTahunIni += remaining;
+          }
+        } else {
+          newSisaTahunIni += jumlah;
+        }
       } else {
         // Kurangi dari tahun lalu dulu, baru tahun ini
         let remaining = jumlah;
@@ -163,6 +176,10 @@ const LeaveModal = ({ open, employee, type = 'kurang', currentYear, onClose, onS
       if (type === 'kurang') {
         historyData.tanggal_mulai = tanggalMulai;
         historyData.tanggal_selesai = tanggalSelesai;
+      } else {
+        // Untuk penambahan, simpan tanggal penambahan sebagai tanggal_mulai
+        historyData.tanggal_mulai = tanggalPenambahan;
+        historyData.tanggal_selesai = tanggalPenambahan;
       }
 
       const { error: historyError } = await supabase
@@ -183,6 +200,7 @@ const LeaveModal = ({ open, employee, type = 'kurang', currentYear, onClose, onS
       setKeterangan('');
       setTanggalMulai(today);
       setTanggalSelesai(today);
+      setTanggalPenambahan(today);
       onSuccess();
       onClose();
     } catch (error: any) {
@@ -263,17 +281,36 @@ const LeaveModal = ({ open, employee, type = 'kurang', currentYear, onClose, onS
             </>
           )}
           {isTambah && (
-            <div className="space-y-2">
-              <Label htmlFor="jumlah">Jumlah Hari</Label>
-              <Input
-                id="jumlah"
-                type="number"
-                min="1"
-                value={jumlah}
-                onChange={(e) => setJumlah(parseInt(e.target.value) || 1)}
-                required
-              />
-            </div>
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="tanggal_penambahan">Tanggal Penambahan</Label>
+                <Input
+                  id="tanggal_penambahan"
+                  type="date"
+                  value={tanggalPenambahan}
+                  onChange={(e) => setTanggalPenambahan(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="jumlah">Jumlah Hari</Label>
+                <Input
+                  id="jumlah"
+                  type="number"
+                  min="1"
+                  value={jumlah}
+                  onChange={(e) => setJumlah(parseInt(e.target.value) || 1)}
+                  required
+                />
+              </div>
+              <div className="text-sm text-muted-foreground bg-muted/50 p-2 rounded">
+                {employee && employee.sisa_cuti_tahun_lalu < 12 ? (
+                  <span>* Akan ditambahkan ke cuti tahun {currentYear - 1} terlebih dahulu</span>
+                ) : (
+                  <span>* Akan ditambahkan ke cuti tahun {currentYear}</span>
+                )}
+              </div>
+            </>
           )}
           <div className="space-y-2">
             <Label htmlFor="keterangan">Keterangan</Label>
