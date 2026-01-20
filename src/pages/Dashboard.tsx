@@ -167,18 +167,35 @@ const Dashboard = () => {
   const fetchOnLeaveStatus = async () => {
     const today = new Date().toISOString().split('T')[0];
 
-    // Get all leave records where today is between tanggal_mulai and tanggal_selesai
-    // Only check 'kurang' (pengambilan cuti), not 'tambah' (penambahan/pembatalan)
-    const { data, error } = await supabase
+    // Get all leave records (kurang) where today is between tanggal_mulai and tanggal_selesai
+    const { data: leaveData, error: leaveError } = await supabase
       .from('leave_history')
-      .select('employee_id, tanggal_mulai, tanggal_selesai')
+      .select('employee_id')
       .eq('jenis', 'kurang')
       .lte('tanggal_mulai', today)
       .gte('tanggal_selesai', today);
 
-    if (error || !data) return;
+    if (leaveError || !leaveData) return;
 
-    const onLeaveIds = new Set(data.map(item => item.employee_id));
+    // Get all cancellation records (tambah) where tanggal_mulai = today
+    // This means the employee cancelled their leave for today
+    const { data: cancelData, error: cancelError } = await supabase
+      .from('leave_history')
+      .select('employee_id')
+      .eq('jenis', 'tambah')
+      .eq('tanggal_mulai', today);
+
+    if (cancelError) return;
+
+    const cancelledIds = new Set((cancelData || []).map(item => item.employee_id));
+
+    // Employee is on leave only if they have a leave record for today AND no cancellation for today
+    const onLeaveIds = new Set(
+      leaveData
+        .filter(item => !cancelledIds.has(item.employee_id))
+        .map(item => item.employee_id)
+    );
+
     setOnLeaveEmployeeIds(onLeaveIds);
   };
 
