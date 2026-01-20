@@ -177,9 +177,10 @@ const LeaveModal = ({ open, employee, type = 'kurang', currentYear, onClose, onS
         historyData.tanggal_mulai = tanggalMulai;
         historyData.tanggal_selesai = tanggalSelesai;
       } else {
-        // Untuk penambahan, simpan tanggal penambahan sebagai tanggal_mulai
+        // Untuk penambahan/pembatalan, simpan tanggal saja (tanpa tanggal_selesai)
+        // agar tidak mempengaruhi status cuti
         historyData.tanggal_mulai = tanggalPenambahan;
-        historyData.tanggal_selesai = tanggalPenambahan;
+        historyData.tanggal_selesai = null;
       }
 
       const { error: historyError } = await supabase

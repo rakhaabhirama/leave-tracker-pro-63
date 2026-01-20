@@ -168,9 +168,11 @@ const Dashboard = () => {
     const today = new Date().toISOString().split('T')[0];
 
     // Get all leave records where today is between tanggal_mulai and tanggal_selesai
+    // Only check 'kurang' (pengambilan cuti), not 'tambah' (penambahan/pembatalan)
     const { data, error } = await supabase
       .from('leave_history')
       .select('employee_id, tanggal_mulai, tanggal_selesai')
+      .eq('jenis', 'kurang')
       .lte('tanggal_mulai', today)
       .gte('tanggal_selesai', today);
 
