@@ -43,7 +43,7 @@ const HistoryModal = ({ open, employee, history, onClose }: HistoryModalProps) =
               <TableHeader>
                 <TableRow>
                   <TableHead>Tanggal Pengajuan</TableHead>
-                  <TableHead>Periode Cuti</TableHead>
+                  <TableHead>Tanggal/Periode</TableHead>
                   <TableHead>Jenis</TableHead>
                   <TableHead className="text-center">Jumlah</TableHead>
                   <TableHead>Keterangan</TableHead>
@@ -56,7 +56,13 @@ const HistoryModal = ({ open, employee, history, onClose }: HistoryModalProps) =
                       {format(new Date(item.tanggal), 'd MMMM yyyy', { locale: localeId })}
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
-                      {item.tanggal_mulai && item.tanggal_selesai ? (
+                      {item.jenis === 'tambah' ? (
+                        item.tanggal_mulai ? (
+                          <span className="text-sm">{formatDate(item.tanggal_mulai)}</span>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )
+                      ) : item.tanggal_mulai && item.tanggal_selesai ? (
                         <span className="text-sm">
                           {formatDate(item.tanggal_mulai)} s/d {formatDate(item.tanggal_selesai)}
                         </span>

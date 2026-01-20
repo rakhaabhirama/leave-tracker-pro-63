@@ -19,6 +19,7 @@ import LeaveModal from '@/components/LeaveModal';
 import HistoryModal from '@/components/HistoryModal';
 import YearManager from '@/components/YearManager';
 import { exportToExcel } from '@/lib/export';
+import { exportEmployeeToDocx } from '@/lib/exportDocx';
 import ImigrasiLogo from '@/components/ImigrasiLogo';
 import { Badge } from '@/components/ui/badge';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -277,6 +278,37 @@ const Dashboard = () => {
     fetchOnLeaveStatus();
   };
 
+  const handleExportEmployeeDocx = async (employee: Employee) => {
+    const { data, error } = await supabase
+      .from('leave_history')
+      .select('*')
+      .eq('employee_id', employee.id)
+      .order('tanggal', { ascending: false });
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: error.message || "Gagal mengambil riwayat cuti",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      await exportEmployeeToDocx(employee, (data || []) as LeaveHistory[], currentYear);
+      toast({
+        title: "Berhasil",
+        description: `Data ${employee.nama} berhasil diekspor ke DOCX`
+      });
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message || "Gagal mengekspor data",
+        variant: "destructive"
+      });
+    }
+  };
+
   const totalEmployees = employees.length;
   const onLeaveCount = onLeaveEmployeeIds.size;
   const lowLeaveCount = employees.filter(e => (e.sisa_cuti_tahun_lalu + e.sisa_cuti_tahun_ini) < 3).length;
@@ -455,7 +487,15 @@ const Dashboard = () => {
                         <TableRow key={employee.id}>
                           <TableCell className="text-center font-medium">{index + 1}</TableCell>
                           <TableCell className="font-mono">{employee.nip}</TableCell>
-                          <TableCell className="font-medium">{employee.nama}</TableCell>
+                          <TableCell>
+                            <button
+                              onClick={() => handleExportEmployeeDocx(employee)}
+                              className="font-medium text-primary hover:underline cursor-pointer text-left"
+                              title="Klik untuk download DOCX"
+                            >
+                              {employee.nama}
+                            </button>
+                          </TableCell>
                           <TableCell className="text-center">
                             {isOnLeave ? (
                               <Badge variant="destructive" className="gap-1">
