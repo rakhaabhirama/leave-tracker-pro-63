@@ -177,13 +177,13 @@ const Dashboard = () => {
 
     if (leaveError || !leaveData) return;
 
-    // Get all cancellation records (tambah) where tanggal_mulai = today
-    // This means the employee cancelled their leave for today
+    // Get all cancellation records (tambah) where today is within the cancelled period
     const { data: cancelData, error: cancelError } = await supabase
       .from('leave_history')
       .select('employee_id')
       .eq('jenis', 'tambah')
-      .eq('tanggal_mulai', today);
+      .lte('tanggal_mulai', today)
+      .gte('tanggal_selesai', today);
 
     if (cancelError) return;
 

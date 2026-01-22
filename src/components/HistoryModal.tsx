@@ -57,7 +57,11 @@ const HistoryModal = ({ open, employee, history, onClose }: HistoryModalProps) =
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
                       {item.jenis === 'tambah' ? (
-                        item.tanggal_mulai ? (
+                        item.tanggal_mulai && item.tanggal_selesai ? (
+                          <span className="text-sm">
+                            {formatDate(item.tanggal_mulai)} s/d {formatDate(item.tanggal_selesai)}
+                          </span>
+                        ) : item.tanggal_mulai ? (
                           <span className="text-sm">{formatDate(item.tanggal_mulai)}</span>
                         ) : (
                           <span className="text-muted-foreground">-</span>
