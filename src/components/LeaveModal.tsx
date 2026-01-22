@@ -30,9 +30,9 @@ const leaveSchema = z.object({
 });
 
 const addLeaveSchema = z.object({
-  jumlah: z.number().min(1, "Jumlah minimal 1 hari"),
   keterangan: z.string().trim().min(1, "Keterangan wajib diisi").max(500, "Keterangan maksimal 500 karakter"),
-  tanggal_penambahan: z.string().min(1, "Tanggal penambahan wajib diisi")
+  tanggal_mulai: z.string().min(1, "Tanggal pembatalan (mulai) wajib diisi"),
+  tanggal_selesai: z.string().min(1, "Tanggal pembatalan (selesai) wajib diisi")
 });
 
 const formatDateIndonesia = (dateStr: string) => {
@@ -46,26 +46,55 @@ const LeaveModal = ({ open, employee, type = 'kurang', currentYear, onClose, onS
   const [keterangan, setKeterangan] = useState('');
   const [tanggalMulai, setTanggalMulai] = useState(today);
   const [tanggalSelesai, setTanggalSelesai] = useState(today);
-  const [tanggalPenambahan, setTanggalPenambahan] = useState(today);
+  const [tanggalBatalMulai, setTanggalBatalMulai] = useState(today);
+  const [tanggalBatalSelesai, setTanggalBatalSelesai] = useState(today);
   const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Calculate jumlah from date range
-  const calculateDays = (start: string, end: string) => {
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-    const diffTime = endDate.getTime() - startDate.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-    return Math.max(1, diffDays);
+  const isWeekend = (d: Date) => {
+    const day = d.getDay();
+    return day === 0 || day === 6;
+  };
+
+  const toYmd = (d: Date) => d.toISOString().split('T')[0];
+
+  const nextWorkday = (dateStr: string) => {
+    const d = new Date(dateStr);
+    while (isWeekend(d)) d.setDate(d.getDate() + 1);
+    return toYmd(d);
+  };
+
+  // Count working days (Mon-Fri) inclusively.
+  const calculateWorkingDays = (start: string, end: string) => {
+    let s = new Date(start);
+    const e = new Date(end);
+    if (e < s) return 0;
+
+    let count = 0;
+    while (s <= e) {
+      if (!isWeekend(s)) count += 1;
+      s.setDate(s.getDate() + 1);
+    }
+    return count;
   };
 
   const handleDateChange = (start: string, end: string) => {
-    setTanggalMulai(start);
-    setTanggalSelesai(end);
-    if (type === 'kurang') {
-      setJumlah(calculateDays(start, end));
-    }
+    const normalizedStart = nextWorkday(start);
+    const normalizedEnd = nextWorkday(end);
+
+    setTanggalMulai(normalizedStart);
+    setTanggalSelesai(normalizedEnd);
+    setJumlah(Math.max(1, calculateWorkingDays(normalizedStart, normalizedEnd)));
+  };
+
+  const handleCancelDateChange = (start: string, end: string) => {
+    const normalizedStart = nextWorkday(start);
+    const normalizedEnd = nextWorkday(end);
+
+    setTanggalBatalMulai(normalizedStart);
+    setTanggalBatalSelesai(normalizedEnd);
+    setJumlah(Math.max(1, calculateWorkingDays(normalizedStart, normalizedEnd)));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -76,11 +105,24 @@ const LeaveModal = ({ open, employee, type = 'kurang', currentYear, onClose, onS
     const isTambah = type === 'tambah';
 
     if (isTambah) {
-      const validation = addLeaveSchema.safeParse({ jumlah, keterangan, tanggal_penambahan: tanggalPenambahan });
+      const validation = addLeaveSchema.safeParse({
+        keterangan,
+        tanggal_mulai: tanggalBatalMulai,
+        tanggal_selesai: tanggalBatalSelesai
+      });
       if (!validation.success) {
         toast({
           title: "Error",
           description: validation.error.errors[0].message,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (new Date(tanggalBatalSelesai) < new Date(tanggalBatalMulai)) {
+        toast({
+          title: "Error",
+          description: "Tanggal pembatalan (selesai) harus setelah tanggal pembatalan (mulai)",
           variant: "destructive"
         });
         return;
@@ -126,6 +168,27 @@ const LeaveModal = ({ open, employee, type = 'kurang', currentYear, onClose, onS
       let newSisaTahunIni = employee.sisa_cuti_tahun_ini;
 
       if (type === 'tambah') {
+        // Validasi: periode pembatalan harus berada di dalam periode cuti yang sudah diajukan
+        const { data: existingLeave, error: existingLeaveError } = await supabase
+          .from('leave_history')
+          .select('id, tanggal_mulai, tanggal_selesai')
+          .eq('employee_id', employee.id)
+          .eq('jenis', 'kurang')
+          .lte('tanggal_mulai', tanggalBatalMulai)
+          .gte('tanggal_selesai', tanggalBatalSelesai)
+          .limit(1)
+          .maybeSingle();
+
+        if (existingLeaveError) throw existingLeaveError;
+        if (!existingLeave) {
+          toast({
+            title: "Error",
+            description: "Tidak bisa membatalkan: tidak ada cuti pada periode tersebut.",
+            variant: "destructive"
+          });
+          return;
+        }
+
         // Tambah ke kolom tahun yang kurang dari 12
         // Prioritas: tahun lalu dulu (jika < 12), baru tahun ini
         if (newSisaTahunLalu < 12) {
@@ -177,10 +240,9 @@ const LeaveModal = ({ open, employee, type = 'kurang', currentYear, onClose, onS
         historyData.tanggal_mulai = tanggalMulai;
         historyData.tanggal_selesai = tanggalSelesai;
       } else {
-        // Untuk penambahan/pembatalan, simpan tanggal saja (tanpa tanggal_selesai)
-        // agar tidak mempengaruhi status cuti
-        historyData.tanggal_mulai = tanggalPenambahan;
-        historyData.tanggal_selesai = null;
+        // Untuk pembatalan, simpan periode yang dibatalkan
+        historyData.tanggal_mulai = tanggalBatalMulai;
+        historyData.tanggal_selesai = tanggalBatalSelesai;
       }
 
       const { error: historyError } = await supabase
@@ -201,7 +263,8 @@ const LeaveModal = ({ open, employee, type = 'kurang', currentYear, onClose, onS
       setKeterangan('');
       setTanggalMulai(today);
       setTanggalSelesai(today);
-      setTanggalPenambahan(today);
+      setTanggalBatalMulai(today);
+      setTanggalBatalSelesai(today);
       onSuccess();
       onClose();
     } catch (error: any) {
@@ -283,33 +346,39 @@ const LeaveModal = ({ open, employee, type = 'kurang', currentYear, onClose, onS
           )}
           {isTambah && (
             <>
-              <div className="space-y-2">
-                <Label htmlFor="tanggal_penambahan">Tanggal Penambahan</Label>
-                <Input
-                  id="tanggal_penambahan"
-                  type="date"
-                  value={tanggalPenambahan}
-                  onChange={(e) => setTanggalPenambahan(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="jumlah">Jumlah Hari</Label>
-                <Input
-                  id="jumlah"
-                  type="number"
-                  min="1"
-                  value={jumlah}
-                  onChange={(e) => setJumlah(parseInt(e.target.value) || 1)}
-                  required
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="tanggal_batal_mulai">Tanggal Dibatalkan (Mulai)</Label>
+                  <Input
+                    id="tanggal_batal_mulai"
+                    type="date"
+                    value={tanggalBatalMulai}
+                    onChange={(e) => handleCancelDateChange(e.target.value, tanggalBatalSelesai)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="tanggal_batal_selesai">Tanggal Dibatalkan (Selesai)</Label>
+                  <Input
+                    id="tanggal_batal_selesai"
+                    type="date"
+                    value={tanggalBatalSelesai}
+                    min={tanggalBatalMulai}
+                    onChange={(e) => handleCancelDateChange(tanggalBatalMulai, e.target.value)}
+                    required
+                  />
+                </div>
               </div>
               <div className="text-sm text-muted-foreground bg-muted/50 p-2 rounded">
-                {employee && employee.sisa_cuti_tahun_lalu < 12 ? (
-                  <span>* Akan ditambahkan ke cuti tahun {currentYear - 1} terlebih dahulu</span>
-                ) : (
-                  <span>* Akan ditambahkan ke cuti tahun {currentYear}</span>
-                )}
+                Durasi pembatalan (hari kerja): <strong>{jumlah} hari</strong>
+                <span className="block text-xs mt-1">
+                  * Pembatalan hanya bisa dilakukan jika periode tersebut memang sedang cuti.
+                </span>
+                <span className="block text-xs mt-1">
+                  {employee && employee.sisa_cuti_tahun_lalu < 12
+                    ? `* Saldo akan dikembalikan ke cuti tahun ${currentYear - 1} terlebih dahulu`
+                    : `* Saldo akan dikembalikan ke cuti tahun ${currentYear}`}
+                </span>
               </div>
             </>
           )}
