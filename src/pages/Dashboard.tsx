@@ -6,13 +6,12 @@ import { Employee, LeaveHistory, LeaveYearSettings, sortEmployeesByJabatan } fro
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import {
   Users, LogOut, Plus, Search,
   Edit, Trash2, History, FileDown, Loader2, CalendarPlus, CalendarMinus,
-  UserCheck, UserX, AlertTriangle, Calendar, BookOpen, ChevronRight
+  UserCheck, UserX, AlertTriangle, Calendar, BookOpen, Download, MoreHorizontal
 } from 'lucide-react';
 import EmployeeModal from '@/components/EmployeeModal';
 import LeaveModal from '@/components/LeaveModal';
@@ -23,6 +22,11 @@ import { exportEmployeeToDocx } from '@/lib/exportDocx';
 import ImigrasiLogo from '@/components/ImigrasiLogo';
 import { Badge } from '@/components/ui/badge';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 const Dashboard = () => {
   const { user, isAdmin, loading, signOut } = useAuth();
@@ -351,21 +355,28 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Decorative Background Elements */}
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30 relative overflow-hidden">
+      {/* Animated Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/5 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 -left-40 w-96 h-96 bg-golden/5 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 right-1/3 w-80 h-80 bg-success/5 rounded-full blur-3xl" />
+        {/* Primary gradient orbs */}
+        <div className="absolute -top-40 -right-40 w-[500px] h-[500px] bg-gradient-to-br from-primary/20 via-primary/10 to-transparent rounded-full blur-3xl animate-float" />
+        <div className="absolute top-1/3 -left-40 w-[600px] h-[600px] bg-gradient-to-br from-golden/15 via-golden/5 to-transparent rounded-full blur-3xl animate-float" style={{ animationDelay: '1s' }} />
+        <div className="absolute -bottom-40 right-1/4 w-[400px] h-[400px] bg-gradient-to-br from-success/15 via-success/5 to-transparent rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
+        
+        {/* Grid pattern overlay */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.03)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.03)_1px,transparent_1px)] bg-[size:60px_60px]" />
+        
+        {/* Subtle noise texture */}
+        <div className="absolute inset-0 opacity-[0.015] bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJhIiB4PSIwIiB5PSIwIj48ZmVUdXJidWxlbmNlIHR5cGU9ImZyYWN0YWxOb2lzZSIgYmFzZUZyZXF1ZW5jeT0iLjc1IiBzdGl0Y2hUaWxlcz0ic3RpdGNoIi8+PC9maWx0ZXI+PHJlY3Qgd2lkdGg9IjMwMCIgaGVpZ2h0PSIzMDAiIGZpbHRlcj0idXJsKCNhKSIgb3BhY2l0eT0iMC4wNSIvPjwvc3ZnPg==')]" />
       </div>
 
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
         <div className="container mx-auto px-4">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-gradient-to-br from-golden/20 to-golden/5 border border-golden/20">
+                <div className="p-2 rounded-xl bg-gradient-to-br from-golden/20 to-golden/5 border border-golden/20 shadow-lg shadow-golden/5">
                   <ImigrasiLogo size="sm" />
                 </div>
                 <div>
@@ -376,7 +387,7 @@ const Dashboard = () => {
             </div>
             <div className="flex items-center gap-2">
               <Link to="/panduan">
-                <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground">
+                <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground hover:bg-primary/5">
                   <BookOpen className="h-4 w-4" />
                   <span className="hidden sm:inline">Panduan</span>
                 </Button>
@@ -401,7 +412,7 @@ const Dashboard = () => {
 
       <main className="container mx-auto px-4 py-6 space-y-6 relative">
         {/* Year Manager */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between animate-fade-in">
           <YearManager
             settings={yearSettings}
             onYearChanged={() => {
@@ -413,79 +424,51 @@ const Dashboard = () => {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="relative overflow-hidden border-border/50 bg-card shadow-sm hover:shadow-md transition-all duration-300">
-            <div className="absolute top-0 right-0 w-20 h-20 bg-primary/10 rounded-full -mr-10 -mt-10" />
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">Total Pegawai</CardTitle>
-              <div className="p-2.5 rounded-xl bg-primary/10">
-                <Users className="h-4 w-4 text-primary" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl md:text-4xl font-bold text-foreground">{totalEmployees}</div>
-              <p className="text-xs text-muted-foreground mt-1">pegawai terdaftar</p>
-            </CardContent>
-          </Card>
-          
-          <Card className="relative overflow-hidden border-border/50 bg-card shadow-sm hover:shadow-md transition-all duration-300">
-            <div className="absolute top-0 right-0 w-20 h-20 bg-success/10 rounded-full -mr-10 -mt-10" />
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">Aktif</CardTitle>
-              <div className="p-2.5 rounded-xl bg-success/10">
-                <UserCheck className="h-4 w-4 text-success" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl md:text-4xl font-bold text-success">{activeCount}</div>
-              <p className="text-xs text-muted-foreground mt-1">sedang bertugas</p>
-            </CardContent>
-          </Card>
-          
-          <Card className="relative overflow-hidden border-border/50 bg-card shadow-sm hover:shadow-md transition-all duration-300">
-            <div className="absolute top-0 right-0 w-20 h-20 bg-warning/10 rounded-full -mr-10 -mt-10" />
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">Sedang Cuti</CardTitle>
-              <div className="p-2.5 rounded-xl bg-warning/10">
-                <Calendar className="h-4 w-4 text-warning" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl md:text-4xl font-bold text-warning">{onLeaveCount}</div>
-              <p className="text-xs text-muted-foreground mt-1">berdasarkan periode</p>
-            </CardContent>
-          </Card>
-          
-          <Card className="relative overflow-hidden border-border/50 bg-card shadow-sm hover:shadow-md transition-all duration-300">
-            <div className="absolute top-0 right-0 w-20 h-20 bg-destructive/10 rounded-full -mr-10 -mt-10" />
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">Cuti Hampir Habis</CardTitle>
-              <div className="p-2.5 rounded-xl bg-destructive/10">
-                <AlertTriangle className="h-4 w-4 text-destructive" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl md:text-4xl font-bold text-destructive">{lowLeaveCount}</div>
-              <p className="text-xs text-muted-foreground mt-1">sisa &lt; 3 hari</p>
-            </CardContent>
-          </Card>
+          {[
+            { title: 'Total Pegawai', value: totalEmployees, subtitle: 'pegawai terdaftar', icon: Users, color: 'primary' },
+            { title: 'Aktif', value: activeCount, subtitle: 'sedang bertugas', icon: UserCheck, color: 'success' },
+            { title: 'Sedang Cuti', value: onLeaveCount, subtitle: 'berdasarkan periode', icon: Calendar, color: 'warning' },
+            { title: 'Cuti Hampir Habis', value: lowLeaveCount, subtitle: 'sisa < 3 hari', icon: AlertTriangle, color: 'destructive' },
+          ].map((stat, index) => (
+            <Card 
+              key={stat.title}
+              className="relative overflow-hidden border-border/50 bg-card/80 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-500 group animate-fade-in-up"
+              style={{ animationDelay: `${index * 100}ms` }}
+            >
+              <div className={`absolute top-0 right-0 w-32 h-32 bg-${stat.color}/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-700`} />
+              <div className={`absolute bottom-0 left-0 w-20 h-20 bg-${stat.color}/5 rounded-full -ml-10 -mb-10 group-hover:scale-150 transition-transform duration-700`} />
+              <CardHeader className="flex flex-row items-center justify-between pb-2 relative">
+                <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">{stat.title}</CardTitle>
+                <div className={`p-2.5 rounded-xl bg-${stat.color}/10 group-hover:scale-110 transition-transform duration-300`}>
+                  <stat.icon className={`h-4 w-4 text-${stat.color}`} />
+                </div>
+              </CardHeader>
+              <CardContent className="relative">
+                <div className={`text-3xl md:text-4xl font-bold text-${stat.color} group-hover:scale-105 transition-transform duration-300 origin-left`}>
+                  {stat.value}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">{stat.subtitle}</p>
+              </CardContent>
+            </Card>
+          ))}
         </div>
 
         {/* Actions & Filters */}
-        <Card className="border-border/50 bg-card shadow-sm">
+        <Card className="border-border/50 bg-card/80 backdrop-blur-sm shadow-lg animate-fade-in-up" style={{ animationDelay: '400ms' }}>
           <CardContent className="p-4 md:p-6">
             <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
               <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <div className="relative group">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                   <Input
                     placeholder="Cari nama atau NIP..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 w-full sm:w-64 bg-background border-border focus:border-primary"
+                    className="pl-10 w-full sm:w-64 bg-background/50 border-border/50 focus:border-primary focus:bg-background transition-all duration-300"
                   />
                 </div>
                 <Select value={leaveStatusFilter} onValueChange={setLeaveStatusFilter}>
-                  <SelectTrigger className="w-full sm:w-48 bg-background border-border">
+                  <SelectTrigger className="w-full sm:w-48 bg-background/50 border-border/50 focus:border-primary">
                     <SelectValue placeholder="Filter Status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -499,16 +482,16 @@ const Dashboard = () => {
               <div className="flex flex-wrap gap-2 w-full lg:w-auto">
                 <Button 
                   onClick={() => setEmployeeModal({ open: true })} 
-                  className="flex-1 lg:flex-none gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm"
+                  className="flex-1 lg:flex-none gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all duration-300"
                 >
                   <Plus className="h-4 w-4" />
                   Tambah Pegawai
                 </Button>
-                <Button variant="outline" onClick={handleExportEmployees} className="gap-2 border-border hover:bg-muted">
+                <Button variant="outline" onClick={handleExportEmployees} className="gap-2 border-border/50 hover:bg-primary/5 hover:border-primary/50 transition-all duration-300">
                   <FileDown className="h-4 w-4" />
                   Ekspor
                 </Button>
-                <Button variant="outline" onClick={handleExportHistory} className="gap-2 border-border hover:bg-muted">
+                <Button variant="outline" onClick={handleExportHistory} className="gap-2 border-border/50 hover:bg-primary/5 hover:border-primary/50 transition-all duration-300">
                   <History className="h-4 w-4" />
                   Ekspor Riwayat
                 </Button>
@@ -517,160 +500,216 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Table */}
-        <Card className="border-border/50 bg-card shadow-sm overflow-hidden">
-          <CardHeader className="border-b border-border bg-muted/30">
-            <div className="flex items-center justify-between">
+        {/* Employee Cards Grid */}
+        <div className="animate-fade-in-up" style={{ animationDelay: '500ms' }}>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-primary/10">
+                <Users className="h-5 w-5 text-primary" />
+              </div>
               <div>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Users className="h-5 w-5 text-primary" />
-                  Data Pegawai
-                </CardTitle>
-                <CardDescription className="mt-1">
+                <h2 className="text-lg font-semibold text-foreground">Data Pegawai</h2>
+                <p className="text-sm text-muted-foreground">
                   {filteredEmployees.length} dari {employees.length} pegawai ditampilkan
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            {isLoading ? (
-              <div className="flex flex-col items-center justify-center py-16 gap-3">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="text-sm text-muted-foreground">Memuat data...</p>
-              </div>
-            ) : filteredEmployees.length === 0 ? (
-              <div className="text-center py-16">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
-                  <Users className="h-8 w-8 text-muted-foreground" />
-                </div>
-                <p className="text-muted-foreground">
-                  {employees.length === 0 ? 'Belum ada data pegawai' : 'Tidak ada hasil pencarian'}
                 </p>
               </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/50 hover:bg-muted/50">
-                      <TableHead className="w-16 text-center font-semibold text-foreground">No</TableHead>
-                      <TableHead className="font-semibold text-foreground">NIP</TableHead>
-                      <TableHead className="font-semibold text-foreground">Nama</TableHead>
-                      <TableHead className="text-center font-semibold text-foreground">Status</TableHead>
-                      <TableHead className="text-center font-semibold text-foreground">Cuti {currentYear - 1}</TableHead>
-                      <TableHead className="text-center font-semibold text-foreground">Cuti {currentYear}</TableHead>
-                      <TableHead className="text-center font-semibold text-foreground">Total</TableHead>
-                      <TableHead className="text-right font-semibold text-foreground">Aksi</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredEmployees.map((employee, index) => {
-                      const isOnLeave = onLeaveEmployeeIds.has(employee.id);
-                      const totalCuti = employee.sisa_cuti_tahun_lalu + employee.sisa_cuti_tahun_ini;
-                      const isLowLeave = totalCuti < 3;
-                      return (
-                        <TableRow 
-                          key={employee.id} 
-                          className="hover:bg-muted/30 transition-colors border-border/50"
-                        >
-                          <TableCell className="text-center font-medium text-muted-foreground">{index + 1}</TableCell>
-                          <TableCell className="font-mono text-sm text-foreground">{employee.nip}</TableCell>
-                          <TableCell>
-                            <button
-                              onClick={() => handleExportEmployeeDocx(employee)}
-                              className="font-medium text-primary hover:text-primary/80 hover:underline cursor-pointer text-left transition-colors inline-flex items-center gap-1 group"
-                              title="Klik untuk download DOCX"
-                            >
-                              {employee.nama}
-                              <ChevronRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                            </button>
-                          </TableCell>
-                          <TableCell className="text-center">
+            </div>
+          </div>
+
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+              <div className="relative">
+                <div className="w-16 h-16 border-4 border-primary/20 rounded-full" />
+                <div className="absolute inset-0 w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+              </div>
+              <p className="text-sm text-muted-foreground">Memuat data...</p>
+            </div>
+          ) : filteredEmployees.length === 0 ? (
+            <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+              <CardContent className="py-20">
+                <div className="text-center">
+                  <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-muted/50 mb-4">
+                    <Users className="h-10 w-10 text-muted-foreground" />
+                  </div>
+                  <p className="text-lg font-medium text-foreground mb-1">
+                    {employees.length === 0 ? 'Belum ada data pegawai' : 'Tidak ada hasil pencarian'}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {employees.length === 0 ? 'Tambahkan pegawai pertama Anda' : 'Coba ubah kata kunci pencarian'}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {filteredEmployees.map((employee, index) => {
+                const isOnLeave = onLeaveEmployeeIds.has(employee.id);
+                const totalCuti = employee.sisa_cuti_tahun_lalu + employee.sisa_cuti_tahun_ini;
+                const isLowLeave = totalCuti < 3;
+                const cutiPercentage = Math.min((totalCuti / 24) * 100, 100);
+                
+                return (
+                  <Card 
+                    key={employee.id}
+                    className="group relative overflow-hidden border-border/50 bg-card/80 backdrop-blur-sm shadow-md hover:shadow-2xl transition-all duration-500 hover:-translate-y-1 animate-fade-in-up"
+                    style={{ animationDelay: `${(index % 6) * 50}ms` }}
+                  >
+                    {/* Status indicator bar */}
+                    <div className={`absolute top-0 left-0 right-0 h-1 ${isOnLeave ? 'bg-gradient-to-r from-warning to-warning/50' : 'bg-gradient-to-r from-success to-success/50'}`} />
+                    
+                    {/* Background decoration */}
+                    <div className={`absolute -right-10 -top-10 w-32 h-32 rounded-full ${isLowLeave ? 'bg-destructive/5' : 'bg-primary/5'} group-hover:scale-150 transition-transform duration-700`} />
+                    
+                    <CardContent className="p-5 relative">
+                      {/* Header with name and status */}
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1 min-w-0 pr-3">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-xs font-mono text-muted-foreground bg-muted/50 px-2 py-0.5 rounded">
+                              #{index + 1}
+                            </span>
                             {isOnLeave ? (
-                              <Badge className="gap-1 bg-warning/15 text-warning border-warning/30 hover:bg-warning/20">
+                              <Badge className="gap-1 bg-warning/15 text-warning border-warning/30 text-xs animate-pulse-soft">
                                 <UserX className="h-3 w-3" />
                                 Cuti
                               </Badge>
                             ) : (
-                              <Badge className="gap-1 bg-success/15 text-success border-success/30 hover:bg-success/20">
+                              <Badge className="gap-1 bg-success/15 text-success border-success/30 text-xs">
                                 <UserCheck className="h-3 w-3" />
                                 Aktif
                               </Badge>
                             )}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <span className={`inline-flex items-center justify-center min-w-[60px] px-2.5 py-1 rounded-md text-sm font-medium ${employee.sisa_cuti_tahun_lalu === 0 ? 'text-muted-foreground bg-muted' : 'bg-primary/10 text-primary'}`}>
-                              {employee.sisa_cuti_tahun_lalu} hari
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <span className="inline-flex items-center justify-center min-w-[60px] px-2.5 py-1 rounded-md text-sm font-medium bg-primary/10 text-primary">
-                              {employee.sisa_cuti_tahun_ini} hari
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <span className={`inline-flex items-center justify-center gap-1 min-w-[70px] px-3 py-1.5 rounded-lg text-sm font-bold ${isLowLeave ? 'bg-destructive/15 text-destructive' : 'bg-success/15 text-success'}`}>
-                              {totalCuti} hari
-                              {isLowLeave && <AlertTriangle className="h-3 w-3" />}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-0.5">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => setLeaveModal({ open: true, employee, type: 'tambah' })}
-                                title="Tambah Cuti (Pembatalan)"
-                                className="h-8 w-8 hover:bg-success/15 hover:text-success"
-                              >
-                                <CalendarPlus className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => setLeaveModal({ open: true, employee, type: 'kurang' })}
-                                title="Ambil Cuti"
-                                className="h-8 w-8 hover:bg-warning/15 hover:text-warning"
-                              >
-                                <CalendarMinus className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleViewHistory(employee)}
-                                title="Lihat Riwayat"
-                                className="h-8 w-8 hover:bg-primary/15 hover:text-primary"
-                              >
-                                <History className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => setEmployeeModal({ open: true, employee })}
-                                title="Edit Pegawai"
-                                className="h-8 w-8 hover:bg-primary/15 hover:text-primary"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDeleteEmployee(employee.id)}
-                                title="Hapus Pegawai"
-                                className="h-8 w-8 hover:bg-destructive/15 hover:text-destructive"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                          </div>
+                          <button
+                            onClick={() => handleExportEmployeeDocx(employee)}
+                            className="font-semibold text-foreground hover:text-primary transition-colors text-left group/name flex items-center gap-1"
+                            title="Klik untuk download DOCX"
+                          >
+                            <span className="truncate">{employee.nama}</span>
+                            <Download className="h-3 w-3 opacity-0 group-hover/name:opacity-100 transition-opacity" />
+                          </button>
+                          <p className="text-sm text-muted-foreground font-mono">{employee.nip}</p>
+                        </div>
+                      </div>
+
+                      {/* Leave balance section */}
+                      <div className="space-y-3 mb-4">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Sisa Cuti</span>
+                          <span className={`font-bold ${isLowLeave ? 'text-destructive' : 'text-success'}`}>
+                            {totalCuti} hari
+                            {isLowLeave && <AlertTriangle className="inline h-3 w-3 ml-1" />}
+                          </span>
+                        </div>
+                        
+                        {/* Progress bar */}
+                        <div className="relative h-2 bg-muted/50 rounded-full overflow-hidden">
+                          <div 
+                            className={`absolute inset-y-0 left-0 rounded-full transition-all duration-1000 ${
+                              isLowLeave 
+                                ? 'bg-gradient-to-r from-destructive to-destructive/70' 
+                                : 'bg-gradient-to-r from-success to-success/70'
+                            }`}
+                            style={{ width: `${cutiPercentage}%` }}
+                          />
+                        </div>
+                        
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-muted" />
+                            <span>{currentYear - 1}: {employee.sisa_cuti_tahun_lalu} hari</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-primary" />
+                            <span>{currentYear}: {employee.sisa_cuti_tahun_ini} hari</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Action buttons */}
+                      <div className="flex items-center gap-1 pt-3 border-t border-border/50">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setLeaveModal({ open: true, employee, type: 'tambah' })}
+                              className="flex-1 h-9 gap-1.5 hover:bg-success/10 hover:text-success transition-all duration-300"
+                            >
+                              <CalendarPlus className="h-4 w-4" />
+                              <span className="hidden sm:inline text-xs">Tambah</span>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Tambah Cuti (Pembatalan)</TooltipContent>
+                        </Tooltip>
+                        
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setLeaveModal({ open: true, employee, type: 'kurang' })}
+                              className="flex-1 h-9 gap-1.5 hover:bg-warning/10 hover:text-warning transition-all duration-300"
+                            >
+                              <CalendarMinus className="h-4 w-4" />
+                              <span className="hidden sm:inline text-xs">Ambil</span>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Ambil Cuti</TooltipContent>
+                        </Tooltip>
+                        
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleViewHistory(employee)}
+                              className="flex-1 h-9 gap-1.5 hover:bg-primary/10 hover:text-primary transition-all duration-300"
+                            >
+                              <History className="h-4 w-4" />
+                              <span className="hidden sm:inline text-xs">Riwayat</span>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Lihat Riwayat</TooltipContent>
+                        </Tooltip>
+                        
+                        <div className="w-px h-6 bg-border/50 mx-1" />
+                        
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setEmployeeModal({ open: true, employee })}
+                              className="h-9 w-9 hover:bg-primary/10 hover:text-primary transition-all duration-300"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Edit Pegawai</TooltipContent>
+                        </Tooltip>
+                        
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDeleteEmployee(employee.id)}
+                              className="h-9 w-9 hover:bg-destructive/10 hover:text-destructive transition-all duration-300"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Hapus Pegawai</TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </main>
 
       {/* Modals */}
