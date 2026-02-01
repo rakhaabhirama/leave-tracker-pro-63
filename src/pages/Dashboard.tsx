@@ -387,7 +387,7 @@ const Dashboard = () => {
                 size="sm"
                 onClick={async () => {
                   await signOut();
-                  navigate('/auth');
+                  navigate('/');
                 }}
                 className="gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
               >
