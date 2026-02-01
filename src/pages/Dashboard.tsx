@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Employee, LeaveHistory, LeaveYearSettings, sortEmployeesByJabatan } from '@/types/employee';
@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import {
   Users, LogOut, Plus, Search,
   Edit, Trash2, History, FileDown, Loader2, CalendarPlus, CalendarMinus,
-  UserCheck, UserX, AlertTriangle, TrendingUp, Calendar
+  UserCheck, UserX, AlertTriangle, Calendar, BookOpen, ChevronRight
 } from 'lucide-react';
 import EmployeeModal from '@/components/EmployeeModal';
 import LeaveModal from '@/components/LeaveModal';
@@ -351,32 +351,47 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+    <div className="min-h-screen bg-background">
+      {/* Decorative Background Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/5 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 -left-40 w-96 h-96 bg-golden/5 rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 right-1/3 w-80 h-80 bg-success/5 rounded-full blur-3xl" />
+      </div>
+
       {/* Header */}
-      <header className="bg-card/80 backdrop-blur-md border-b border-border/50 sticky top-0 z-50 shadow-sm">
-        <div className="container mx-auto px-4 py-3 md:py-4">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 md:gap-4 min-w-0">
-              <div className="flex-shrink-0 p-2 rounded-xl bg-background/50 border border-border/50">
-                <ImigrasiLogo size="sm" />
-              </div>
-              <div className="min-w-0">
-                <h1 className="text-base md:text-xl font-bold truncate font-baskerville text-golden">MACAN</h1>
-                <p className="text-[10px] md:text-xs text-muted-foreground truncate">Kantor Imigrasi Kelas I TPI Palembang</p>
+      <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto px-4">
+          <div className="flex h-16 items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-gradient-to-br from-golden/20 to-golden/5 border border-golden/20">
+                  <ImigrasiLogo size="sm" />
+                </div>
+                <div>
+                  <h1 className="text-lg md:text-xl font-bold font-baskerville text-golden tracking-wide">MACAN</h1>
+                  <p className="text-[10px] md:text-xs text-muted-foreground">Kantor Imigrasi Kelas I TPI Palembang</p>
+                </div>
               </div>
             </div>
-            <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
+            <div className="flex items-center gap-2">
+              <Link to="/panduan">
+                <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground">
+                  <BookOpen className="h-4 w-4" />
+                  <span className="hidden sm:inline">Panduan</span>
+                </Button>
+              </Link>
               <ThemeToggle />
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                className="text-xs md:text-sm bg-background/50 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/50 transition-colors"
                 onClick={async () => {
                   await signOut();
                   navigate('/auth');
                 }}
+                className="gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
               >
-                <LogOut className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+                <LogOut className="h-4 w-4" />
                 <span className="hidden sm:inline">Keluar</span>
               </Button>
             </div>
@@ -384,7 +399,7 @@ const Dashboard = () => {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6 space-y-6">
+      <main className="container mx-auto px-4 py-6 space-y-6 relative">
         {/* Year Manager */}
         <div className="flex items-center justify-between">
           <YearManager
@@ -398,61 +413,65 @@ const Dashboard = () => {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-card to-card/80 hover:shadow-xl transition-all duration-300 group">
+          <Card className="relative overflow-hidden border-border/50 bg-card shadow-sm hover:shadow-md transition-all duration-300">
+            <div className="absolute top-0 right-0 w-20 h-20 bg-primary/10 rounded-full -mr-10 -mt-10" />
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">Total Pegawai</CardTitle>
-              <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+              <div className="p-2.5 rounded-xl bg-primary/10">
                 <Users className="h-4 w-4 text-primary" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl md:text-3xl font-bold">{totalEmployees}</div>
+              <div className="text-3xl md:text-4xl font-bold text-foreground">{totalEmployees}</div>
               <p className="text-xs text-muted-foreground mt-1">pegawai terdaftar</p>
             </CardContent>
           </Card>
           
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-card to-success/5 hover:shadow-xl transition-all duration-300 group">
+          <Card className="relative overflow-hidden border-border/50 bg-card shadow-sm hover:shadow-md transition-all duration-300">
+            <div className="absolute top-0 right-0 w-20 h-20 bg-success/10 rounded-full -mr-10 -mt-10" />
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">Aktif</CardTitle>
-              <div className="p-2 rounded-lg bg-success/10 group-hover:bg-success/20 transition-colors">
+              <div className="p-2.5 rounded-xl bg-success/10">
                 <UserCheck className="h-4 w-4 text-success" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl md:text-3xl font-bold text-success">{activeCount}</div>
+              <div className="text-3xl md:text-4xl font-bold text-success">{activeCount}</div>
               <p className="text-xs text-muted-foreground mt-1">sedang bertugas</p>
             </CardContent>
           </Card>
           
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-card to-warning/5 hover:shadow-xl transition-all duration-300 group">
+          <Card className="relative overflow-hidden border-border/50 bg-card shadow-sm hover:shadow-md transition-all duration-300">
+            <div className="absolute top-0 right-0 w-20 h-20 bg-warning/10 rounded-full -mr-10 -mt-10" />
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">Sedang Cuti</CardTitle>
-              <div className="p-2 rounded-lg bg-warning/10 group-hover:bg-warning/20 transition-colors">
+              <div className="p-2.5 rounded-xl bg-warning/10">
                 <Calendar className="h-4 w-4 text-warning" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl md:text-3xl font-bold text-warning">{onLeaveCount}</div>
+              <div className="text-3xl md:text-4xl font-bold text-warning">{onLeaveCount}</div>
               <p className="text-xs text-muted-foreground mt-1">berdasarkan periode</p>
             </CardContent>
           </Card>
           
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-card to-destructive/5 hover:shadow-xl transition-all duration-300 group">
+          <Card className="relative overflow-hidden border-border/50 bg-card shadow-sm hover:shadow-md transition-all duration-300">
+            <div className="absolute top-0 right-0 w-20 h-20 bg-destructive/10 rounded-full -mr-10 -mt-10" />
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">Cuti Hampir Habis</CardTitle>
-              <div className="p-2 rounded-lg bg-destructive/10 group-hover:bg-destructive/20 transition-colors">
+              <div className="p-2.5 rounded-xl bg-destructive/10">
                 <AlertTriangle className="h-4 w-4 text-destructive" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl md:text-3xl font-bold text-destructive">{lowLeaveCount}</div>
+              <div className="text-3xl md:text-4xl font-bold text-destructive">{lowLeaveCount}</div>
               <p className="text-xs text-muted-foreground mt-1">sisa &lt; 3 hari</p>
             </CardContent>
           </Card>
         </div>
 
         {/* Actions & Filters */}
-        <Card className="border-0 shadow-lg bg-card/80 backdrop-blur-sm">
+        <Card className="border-border/50 bg-card shadow-sm">
           <CardContent className="p-4 md:p-6">
             <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
               <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
@@ -462,11 +481,11 @@ const Dashboard = () => {
                     placeholder="Cari nama atau NIP..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 w-full sm:w-64 bg-background/50 border-border/50 focus:bg-background transition-colors"
+                    className="pl-10 w-full sm:w-64 bg-background border-border focus:border-primary"
                   />
                 </div>
                 <Select value={leaveStatusFilter} onValueChange={setLeaveStatusFilter}>
-                  <SelectTrigger className="w-full sm:w-48 bg-background/50 border-border/50">
+                  <SelectTrigger className="w-full sm:w-48 bg-background border-border">
                     <SelectValue placeholder="Filter Status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -480,17 +499,17 @@ const Dashboard = () => {
               <div className="flex flex-wrap gap-2 w-full lg:w-auto">
                 <Button 
                   onClick={() => setEmployeeModal({ open: true })} 
-                  className="flex-1 lg:flex-none shadow-md hover:shadow-lg transition-shadow"
+                  className="flex-1 lg:flex-none gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm"
                 >
-                  <Plus className="h-4 w-4 mr-2" />
+                  <Plus className="h-4 w-4" />
                   Tambah Pegawai
                 </Button>
-                <Button variant="outline" onClick={handleExportEmployees} className="bg-background/50 hover:bg-background">
-                  <FileDown className="h-4 w-4 mr-2" />
+                <Button variant="outline" onClick={handleExportEmployees} className="gap-2 border-border hover:bg-muted">
+                  <FileDown className="h-4 w-4" />
                   Ekspor
                 </Button>
-                <Button variant="outline" onClick={handleExportHistory} className="bg-background/50 hover:bg-background">
-                  <History className="h-4 w-4 mr-2" />
+                <Button variant="outline" onClick={handleExportHistory} className="gap-2 border-border hover:bg-muted">
+                  <History className="h-4 w-4" />
                   Ekspor Riwayat
                 </Button>
               </div>
@@ -499,15 +518,15 @@ const Dashboard = () => {
         </Card>
 
         {/* Table */}
-        <Card className="border-0 shadow-xl bg-card/80 backdrop-blur-sm overflow-hidden">
-          <CardHeader className="border-b border-border/50 bg-muted/30">
+        <Card className="border-border/50 bg-card shadow-sm overflow-hidden">
+          <CardHeader className="border-b border-border bg-muted/30">
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Users className="h-5 w-5 text-primary" />
                   Data Pegawai
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="mt-1">
                   {filteredEmployees.length} dari {employees.length} pegawai ditampilkan
                 </CardDescription>
               </div>
@@ -521,7 +540,9 @@ const Dashboard = () => {
               </div>
             ) : filteredEmployees.length === 0 ? (
               <div className="text-center py-16">
-                <Users className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
+                  <Users className="h-8 w-8 text-muted-foreground" />
+                </div>
                 <p className="text-muted-foreground">
                   {employees.length === 0 ? 'Belum ada data pegawai' : 'Tidak ada hasil pencarian'}
                 </p>
@@ -530,15 +551,15 @@ const Dashboard = () => {
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-muted/20 hover:bg-muted/30">
-                      <TableHead className="w-16 text-center font-semibold">No</TableHead>
-                      <TableHead className="font-semibold">NIP</TableHead>
-                      <TableHead className="font-semibold">Nama</TableHead>
-                      <TableHead className="text-center font-semibold">Status</TableHead>
-                      <TableHead className="text-center font-semibold">Cuti {currentYear - 1}</TableHead>
-                      <TableHead className="text-center font-semibold">Cuti {currentYear}</TableHead>
-                      <TableHead className="text-center font-semibold">Total</TableHead>
-                      <TableHead className="text-right font-semibold">Aksi</TableHead>
+                    <TableRow className="bg-muted/50 hover:bg-muted/50">
+                      <TableHead className="w-16 text-center font-semibold text-foreground">No</TableHead>
+                      <TableHead className="font-semibold text-foreground">NIP</TableHead>
+                      <TableHead className="font-semibold text-foreground">Nama</TableHead>
+                      <TableHead className="text-center font-semibold text-foreground">Status</TableHead>
+                      <TableHead className="text-center font-semibold text-foreground">Cuti {currentYear - 1}</TableHead>
+                      <TableHead className="text-center font-semibold text-foreground">Cuti {currentYear}</TableHead>
+                      <TableHead className="text-center font-semibold text-foreground">Total</TableHead>
+                      <TableHead className="text-right font-semibold text-foreground">Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -549,56 +570,57 @@ const Dashboard = () => {
                       return (
                         <TableRow 
                           key={employee.id} 
-                          className="hover:bg-muted/30 transition-colors"
+                          className="hover:bg-muted/30 transition-colors border-border/50"
                         >
                           <TableCell className="text-center font-medium text-muted-foreground">{index + 1}</TableCell>
-                          <TableCell className="font-mono text-sm">{employee.nip}</TableCell>
+                          <TableCell className="font-mono text-sm text-foreground">{employee.nip}</TableCell>
                           <TableCell>
                             <button
                               onClick={() => handleExportEmployeeDocx(employee)}
-                              className="font-medium text-primary hover:text-primary/80 hover:underline cursor-pointer text-left transition-colors"
+                              className="font-medium text-primary hover:text-primary/80 hover:underline cursor-pointer text-left transition-colors inline-flex items-center gap-1 group"
                               title="Klik untuk download DOCX"
                             >
                               {employee.nama}
+                              <ChevronRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                             </button>
                           </TableCell>
                           <TableCell className="text-center">
                             {isOnLeave ? (
-                              <Badge variant="destructive" className="gap-1 shadow-sm">
+                              <Badge className="gap-1 bg-warning/15 text-warning border-warning/30 hover:bg-warning/20">
                                 <UserX className="h-3 w-3" />
                                 Cuti
                               </Badge>
                             ) : (
-                              <Badge variant="secondary" className="gap-1 bg-success/10 text-success border-success/20 shadow-sm">
+                              <Badge className="gap-1 bg-success/15 text-success border-success/30 hover:bg-success/20">
                                 <UserCheck className="h-3 w-3" />
                                 Aktif
                               </Badge>
                             )}
                           </TableCell>
                           <TableCell className="text-center">
-                            <span className={`px-2 py-1 rounded-md text-sm ${employee.sisa_cuti_tahun_lalu === 0 ? 'text-muted-foreground bg-muted/30' : 'bg-primary/10 text-primary'}`}>
+                            <span className={`inline-flex items-center justify-center min-w-[60px] px-2.5 py-1 rounded-md text-sm font-medium ${employee.sisa_cuti_tahun_lalu === 0 ? 'text-muted-foreground bg-muted' : 'bg-primary/10 text-primary'}`}>
                               {employee.sisa_cuti_tahun_lalu} hari
                             </span>
                           </TableCell>
                           <TableCell className="text-center">
-                            <span className="px-2 py-1 rounded-md text-sm bg-primary/10 text-primary">
+                            <span className="inline-flex items-center justify-center min-w-[60px] px-2.5 py-1 rounded-md text-sm font-medium bg-primary/10 text-primary">
                               {employee.sisa_cuti_tahun_ini} hari
                             </span>
                           </TableCell>
                           <TableCell className="text-center">
-                            <span className={`px-3 py-1.5 rounded-lg text-sm font-semibold ${isLowLeave ? 'bg-destructive/10 text-destructive' : 'bg-success/10 text-success'}`}>
+                            <span className={`inline-flex items-center justify-center gap-1 min-w-[70px] px-3 py-1.5 rounded-lg text-sm font-bold ${isLowLeave ? 'bg-destructive/15 text-destructive' : 'bg-success/15 text-success'}`}>
                               {totalCuti} hari
-                              {isLowLeave && <AlertTriangle className="inline h-3 w-3 ml-1" />}
+                              {isLowLeave && <AlertTriangle className="h-3 w-3" />}
                             </span>
                           </TableCell>
                           <TableCell className="text-right">
-                            <div className="flex justify-end gap-1">
+                            <div className="flex justify-end gap-0.5">
                               <Button
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => setLeaveModal({ open: true, employee, type: 'tambah' })}
-                                title="Tambah Cuti"
-                                className="hover:bg-success/10 hover:text-success"
+                                title="Tambah Cuti (Pembatalan)"
+                                className="h-8 w-8 hover:bg-success/15 hover:text-success"
                               >
                                 <CalendarPlus className="h-4 w-4" />
                               </Button>
@@ -607,7 +629,7 @@ const Dashboard = () => {
                                 size="icon"
                                 onClick={() => setLeaveModal({ open: true, employee, type: 'kurang' })}
                                 title="Ambil Cuti"
-                                className="hover:bg-warning/10 hover:text-warning"
+                                className="h-8 w-8 hover:bg-warning/15 hover:text-warning"
                               >
                                 <CalendarMinus className="h-4 w-4" />
                               </Button>
@@ -616,7 +638,7 @@ const Dashboard = () => {
                                 size="icon"
                                 onClick={() => handleViewHistory(employee)}
                                 title="Lihat Riwayat"
-                                className="hover:bg-primary/10 hover:text-primary"
+                                className="h-8 w-8 hover:bg-primary/15 hover:text-primary"
                               >
                                 <History className="h-4 w-4" />
                               </Button>
@@ -625,7 +647,7 @@ const Dashboard = () => {
                                 size="icon"
                                 onClick={() => setEmployeeModal({ open: true, employee })}
                                 title="Edit Pegawai"
-                                className="hover:bg-primary/10 hover:text-primary"
+                                className="h-8 w-8 hover:bg-primary/15 hover:text-primary"
                               >
                                 <Edit className="h-4 w-4" />
                               </Button>
@@ -634,7 +656,7 @@ const Dashboard = () => {
                                 size="icon"
                                 onClick={() => handleDeleteEmployee(employee.id)}
                                 title="Hapus Pegawai"
-                                className="hover:bg-destructive/10 hover:text-destructive"
+                                className="h-8 w-8 hover:bg-destructive/15 hover:text-destructive"
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
