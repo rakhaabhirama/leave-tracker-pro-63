@@ -251,7 +251,7 @@ const Dashboard = () => {
       [`Sisa Cuti ${currentYear}`]: emp.sisa_cuti_tahun_ini,
       'Total Sisa Cuti': emp.sisa_cuti_tahun_lalu + emp.sisa_cuti_tahun_ini,
     }));
-    exportToExcel(exportData, `data-pegawai-${currentYear}`);
+    exportToExcel(exportData, `data-pegawai-${currentYear}`, 'Data Pegawai');
     toast({
       title: "Berhasil",
       description: "Data pegawai berhasil diekspor"
@@ -284,7 +284,7 @@ const Dashboard = () => {
         Jumlah: item.jumlah,
         Keterangan: item.keterangan
       }));
-      exportToExcel(exportData, 'riwayat-cuti');
+      exportToExcel(exportData, 'riwayat-cuti', 'Riwayat Cuti');
       toast({
         title: "Berhasil",
         description: "Riwayat cuti berhasil diekspor"
